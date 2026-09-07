@@ -11,8 +11,8 @@
 |---|---|---|---|
 | **Phase 0** | Workspace Reset & Scaffolding | `[x]` Completed | `v0.0-scaffold` |
 | **Phase 1** | Topology, Environment & Backend Microservice | `[x]` Completed | `v0.1-env-scaffold` |
-| **Phase 2** | Core SDN Load Balancer (RR, LC, Weighted) | `[/]` In Progress | `v0.2-load-balancer` |
-| **Phase 3** | Telemetry, Health Probing & Traffic Engineering | `[ ]` Pending | `v0.3-monitoring` |
+| **Phase 2** | Core SDN Load Balancer (RR, LC, Weighted) | `[x]` Completed | `v0.2-load-balancer` |
+| **Phase 3** | Telemetry, Health Probing & Traffic Engineering | `[/]` In Progress | `v0.3-monitoring` |
 | **Phase 4** | Benchmarking Suite, Evaluation & Failover | `[ ]` Pending | `v0.4-benchmarks` |
 | **Phase 5** | Live Web Dashboard, Documentation & CPMK Report | `[ ]` Pending | `v1.0-release` |
 
@@ -40,26 +40,26 @@
   - Flask HTTP server returning JSON `{ "server_id": id, "request_count": count, "timestamp": ts }`
   - Health check endpoint `/health` returning HTTP 200
 
-### Phase 2: Core SDN Load Balancer (Month 1–2) `[ ]`
-- [ ] Implement `controller/config.py`:
+### Phase 2: Core SDN Load Balancer (Month 1–2) `[x]`
+- [x] Implement `controller/config.py`:
   - VIP address (`10.0.0.100`), Virtual MAC (`00:00:00:00:00:fe`), service port `80`
   - Backend pool specification (IPs, MACs, physical switch ports)
   - Timeouts and priority constants
-- [ ] Implement `controller/flow_manager.py`:
+- [x] Implement `controller/flow_manager.py`:
   - OFP 1.3 Flow-Mod installation helper (actions, match, timeouts, priorities)
   - Group table and bucket installation utilities
-- [ ] Implement `controller/main.py`:
+- [x] Implement `controller/main.py`:
   - `EventOFPSwitchFeatures`: Table-Miss flow installation (`priority=0`)
-  - `EventOFPPacketIn`: ARP handling and TCP handshake delegation
-- [ ] Implement `controller/load_balancer.py`:
+  - `EventOFPPacketIn`: Proxy ARP handling and TCP handshake delegation
+- [x] Implement `controller/load_balancer.py`:
   - ARP responder for VIP requests (reply with Virtual MAC)
   - Bidirectional NAT rewriting (Client -> VIP rewritten to Backend; Backend -> Client rewritten to VIP)
   - Algorithm 1: **Round-Robin**
   - Algorithm 2: **Least-Connections** (using active flow counts)
   - Algorithm 3: **Weighted / Utilization-Aware**
-- [ ] Verification:
-  - `tests/test_vip_rewrite.py`: Verify NAT flow rules and HTTP responses
-  - `tests/test_lb_algorithms.py`: Validate traffic distribution ratios
+- [x] Verification:
+  - `tests/test_vip_rewrite.py`: Verify NAT flow rules and HTTP responses (PASSED)
+  - `tests/test_lb_algorithms.py`: Validate traffic distribution ratios (PASSED)
 
 ### Phase 3: Telemetry, Health Probing & Traffic Engineering (Month 2–3) `[ ]`
 - [ ] Implement `controller/stats_monitor.py`:
