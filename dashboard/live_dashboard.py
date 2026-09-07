@@ -644,6 +644,10 @@ def get_dashboard_data():
         with urllib.request.urlopen(te_url, timeout=2) as resp:
             te_data = json.loads(resp.read().decode())
             combined["link_stats"] = te_data.get("link_utilization", {})
+            te_status = te_data.get("traffic_engineering", {})
+            if "preferred_path" in te_status:
+                combined["preferred_path"] = te_status["preferred_path"]
+            combined["te_status"] = te_status
     except Exception:
         pass
 
