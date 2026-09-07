@@ -45,7 +45,7 @@ class SDNLoadBalancerApp(app_manager.RyuApp):
         # Seed with static host-facing ports to prevent broadcast loops across diamond topology
         self.mac_to_port = {
             config.DPID_S1: {c["mac"]: c["s1_port"] for c in config.CLIENT_POOL.values()},
-            config.DPID_S4: {b["mac"]: b["switch_port"] for b in config.BACKENDS}
+            config.DPID_S4: {b["mac"]: b["s4_port"] for b in config.BACKEND_POOL}
         }
 
         # Preferred transit path (can be changed by TrafficEngineer)
