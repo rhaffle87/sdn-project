@@ -13,7 +13,7 @@
 | **CPMK-1** | Master SDN Concepts and Principles | `topology/lb_topology.py`<br/>`scripts/setup_env.sh` | Decoupled Ryu controller (TCP 6653) & OVS datapath; Wireshark OpenFlow 1.3 dissector traces | **100% (High Mastery)** |
 | **CPMK-2** | Master Control/Data Plane Separation | `controller/main.py`<br/>`controller/flow_manager.py` | `EventOFPSwitchFeatures` Table-Miss installation, Packet-In handling, bidirectional NAT Flow-Mod rules | **100% (High Mastery)** |
 | **CPMK-3** | Implement Network Virtualization | `controller/load_balancer.py`<br/>`controller/config.py` | Virtual IP (`10.0.0.100`) & Virtual MAC (`00:00:00:00:fe`) abstraction; `tests/test_vip_rewrite.py` | **100% (High Mastery)** |
-| **CPMK-4** | Understand SDN Application & Ecosystem | `controller/stats_monitor.py`<br/>`controller/traffic_engineer.py` | Periodic `OFPPortStatsRequest` telemetry; dynamic rerouting from Path A to Path B at >75% link load | **100% (High Mastery)** |
+| **CPMK-4** | Understand SDN Application & Ecosystem | `controller/stats_monitor.py`<br/>`controller/traffic_engineer.py` | Periodic `OFPPortStatsRequest` telemetry; dynamic rerouting from Path A to Path B at >80% link load | **100% (High Mastery)** |
 | **CPMK-5** | Design SDN and Master Its Development | `benchmark/`<br/>`dashboard/`<br/>`tests/test_failover.py` | Comparative evaluation of RR, LC, WRR ($\mathcal{J}=1.0000$); sub-second backend & link failover | **100% (High Mastery)** |
 
 ---
@@ -81,7 +81,7 @@
 - **Adaptive Multi-Path Rerouting:**
   - Standard ECMP hashes flows without awareness of link saturation.
   - The `TrafficEngineer` module continuously inspects the utilization of the primary transit link ($s1 \leftrightarrow s2$, Path A).
-  - When link utilization breaches the 75% threshold (or during a physical link failure), the controller dynamically provisions alternate forwarding rules (Priority 20) routing new sessions over Path B ($s1 \leftrightarrow s3 \leftrightarrow s4$).
+  - When link utilization breaches the 80% threshold (or during a physical link failure), the controller dynamically provisions alternate forwarding rules (Priority 20) routing new sessions over Path B ($s1 \leftrightarrow s3 \leftrightarrow s4$).
   - Hysteresis thresholds (reverting below 40%) prevent route oscillation.
 
 #### 2. Verification Artifacts & Code References:

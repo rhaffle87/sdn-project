@@ -95,6 +95,11 @@ class SDNLoadBalancerApp(app_manager.RyuApp):
         """Delegate port stats message to StatsMonitor."""
         self.stats.handle_port_stats_reply(ev)
 
+    @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
+    def flow_stats_reply_handler(self, ev):
+        """Delegate flow stats message to StatsMonitor for per-backend flow counting."""
+        self.stats.handle_flow_stats_reply(ev)
+
     @set_ev_cls(ofp_event.EventOFPFlowRemoved, MAIN_DISPATCHER)
     def flow_removed_handler(self, ev):
         """Track connection closure when NAT flows expire."""
@@ -260,6 +265,7 @@ class LoadBalancerRestController(ControllerBase):
         body = json.dumps({
             "traffic_engineering": self.app.te.get_te_status(),
             "link_utilization": self.app.stats.get_link_utilization(),
+            "flow_counts": self.app.stats.get_flow_counts(),
             "active_connections": self.app.lb.active_connections,
             "total_requests": self.app.lb.total_requests
         }, indent=2)

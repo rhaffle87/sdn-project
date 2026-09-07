@@ -139,6 +139,39 @@ def plot_fairness_comparison(summary_data, out_path):
     plt.close()
     print(f"[+] Saved fairness index comparison: {out_path}")
 
+def plot_throughput_comparison(summary_data, out_path):
+    """Generate throughput (requests per second) comparison bar chart."""
+    algos = ["round_robin", "least_connections", "weighted"]
+    labels = ["Round-Robin", "Least-Connections", "Weighted\n(1:2:1:2)"]
+    rps_values = []
+
+    for algo in algos:
+        val = summary_data.get(algo, {}).get("throughput_rps", 0.0)
+        rps_values.append(val)
+
+    fig, ax = plt.subplots(figsize=(7, 4.8), dpi=300)
+    x = np.arange(len(algos))
+    bars = ax.bar(x, rps_values, width=0.45, color=[COLORS[a] for a in algos], alpha=0.9, edgecolor='black', linewidth=0.8)
+
+    for bar in bars:
+        height = bar.get_height()
+        ax.annotate(f'{height:.2f}',
+                    xy=(bar.get_x() + bar.get_width() / 2, height),
+                    xytext=(0, 4), textcoords="offset points",
+                    ha='center', va='bottom', fontsize=11, fontweight='bold')
+
+    ax.set_ylabel("Throughput (Requests/Second)", fontweight='bold')
+    ax.set_title("System Throughput Across Load Balancing Algorithms", pad=15, fontweight='bold')
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
+    ax.set_ylim(0, max(1, max(rps_values) * 1.25) if rps_values else 1)
+    ax.grid(axis='y', linestyle='--', alpha=0.5)
+
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=300)
+    plt.close()
+    print(f"[+] Saved throughput comparison figure: {out_path}")
+
 def generate_all_plots(summary_json_path):
     """Read summary data and generate all benchmark figures."""
     if not os.path.exists(FIGURES_DIR):
@@ -150,6 +183,7 @@ def generate_all_plots(summary_json_path):
     plot_load_distribution(summary_data, os.path.join(FIGURES_DIR, "load_distribution_comparison.png"))
     plot_latency_cdf(summary_data, os.path.join(FIGURES_DIR, "latency_cdf.png"))
     plot_fairness_comparison(summary_data, os.path.join(FIGURES_DIR, "fairness_index_comparison.png"))
+    plot_throughput_comparison(summary_data, os.path.join(FIGURES_DIR, "throughput_comparison.png"))
 
 if __name__ == "__main__":
     default_json = os.path.join(PROJECT_ROOT, "benchmark", "results", "summary_metrics.json")

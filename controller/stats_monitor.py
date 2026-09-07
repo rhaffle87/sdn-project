@@ -34,6 +34,9 @@ class StatsMonitor:
             "path_b": {"bps": 0.0, "ratio": 0.0, "tx_bytes": 0}
         }
 
+        # Per-backend active flow counts from OFPFlowStatsReply
+        self.flow_counts = {}
+
         # Port to link name mapping on s1 (Ingress Switch)
         self.s1_port_to_path = {
             config.S1_PORT_TO_S2: "path_a",
@@ -49,12 +52,20 @@ class StatsMonitor:
             hub.sleep(config.STATS_POLL_INTERVAL)
             for dp in list(self.datapaths.values()):
                 self._send_port_stats_request(dp)
+                self._send_flow_stats_request(dp)
 
     def _send_port_stats_request(self, datapath):
         """Send OFPPortStatsRequest to datapath."""
         ofp = datapath.ofproto
         parser = datapath.ofproto_parser
         req = parser.OFPPortStatsRequest(datapath, 0, ofp.OFPP_ANY)
+        datapath.send_msg(req)
+
+    def _send_flow_stats_request(self, datapath):
+        """Send OFPFlowStatsRequest to datapath to count active flows per backend."""
+        parser = datapath.ofproto_parser
+        # Request all flows from table 0
+        req = parser.OFPFlowStatsRequest(datapath, table_id=0)
         datapath.send_msg(req)
 
     def handle_port_stats_reply(self, ev):
@@ -95,6 +106,39 @@ class StatsMonitor:
 
             self.prev_port_stats[key] = (tx_bytes, now)
 
+    def handle_flow_stats_reply(self, ev):
+        """
+        Process OFPFlowStatsReply message from switch.
+        Counts active NAT flows per backend on s1 (ingress) to track connections.
+        """
+        msg = ev.msg
+        dp = msg.datapath
+        dpid = dp.id
+
+        # Only count NAT flows on ingress switch s1
+        if dpid != config.DPID_S1:
+            return
+
+        counts = {}
+        for stat in msg.body:
+            # Count forward NAT flows (priority 50) targeting each backend
+            if stat.priority == config.PRIO_FORWARD_NAT:
+                match = stat.match
+                if 'ipv4_dst' in match:
+                    dst_ip = match['ipv4_dst']
+                    for b in self.app.lb.backends:
+                        if b['ip'] == dst_ip:
+                            counts[b['id']] = counts.get(b['id'], 0) + 1
+                            break
+
+        self.flow_counts = counts
+        LOG.debug("[Stats] Active NAT flow counts per backend: %s", counts)
+
     def get_link_utilization(self):
         """Return snapshot of link utilization statistics."""
         return self.link_stats
+
+    def get_flow_counts(self):
+        """Return snapshot of per-backend active flow counts."""
+        return self.flow_counts
+

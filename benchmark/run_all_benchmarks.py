@@ -67,41 +67,81 @@ def run_all_benchmarks():
         # Weights dictionary for weighted fairness calculation
         weights = {"srv1": 1, "srv2": 2, "srv3": 1, "srv4": 2}
 
+        # Number of iterations per algorithm for statistical validity
+        BENCHMARK_ITERATIONS = 3
+
         h1 = net.get('h1')
 
         for algo_key, algo_name in algorithms:
-            print(f"\n>>> Running Benchmark: {algo_name} <<<")
+            print(f"\n>>> Running Benchmark: {algo_name} ({BENCHMARK_ITERATIONS} iterations) <<<")
             set_controller_algorithm(algo_key)
             time.sleep(1)
 
-            out_file = os.path.join(RESULTS_DIR, f"{algo_key}.json")
-            # Execute load generator from client host h1 namespace
-            cmd = (f"/home/rafli_alif/sdn-venv/bin/python3 {PROJECT_ROOT}/benchmark/generate_load.py "
-                   f"--target http://10.0.0.100/ --requests 24 --concurrency 4 --delay 0.03 "
-                   f"--out {out_file}")
-            print(f"[*] Executing on h1: {cmd}")
-            h1_out = h1.cmd(cmd)
-            print(h1_out)
+            iteration_results = []
+            for run_idx in range(1, BENCHMARK_ITERATIONS + 1):
+                print(f"\n  [Run {run_idx}/{BENCHMARK_ITERATIONS}] {algo_name}")
+                out_file = os.path.join(RESULTS_DIR, f"{algo_key}_run{run_idx}.json")
+                # Execute load generator from client host h1 namespace
+                cmd = (f"/home/rafli_alif/sdn-venv/bin/python3 {PROJECT_ROOT}/benchmark/generate_load.py "
+                       f"--target http://10.0.0.100/ --requests 24 --concurrency 4 --delay 0.03 "
+                       f"--out {out_file}")
+                print(f"  [*] Executing on h1: {cmd}")
+                h1_out = h1.cmd(cmd)
+                print(h1_out)
 
-            # Load results from written JSON
-            if os.path.exists(out_file):
-                with open(out_file, "r") as f:
-                    results = json.load(f)
-            else:
-                results = {"distribution": {}, "records": [], "throughput_rps": 0.0, "latency_ms": {"avg": 0.0}}
+                # Load results from written JSON
+                if os.path.exists(out_file):
+                    with open(out_file, "r") as f:
+                        run_data = json.load(f)
+                else:
+                    run_data = {"distribution": {}, "records": [], "throughput_rps": 0.0, "latency_ms": {"avg": 0.0}}
+                iteration_results.append(run_data)
 
-            # Compute Jain's Fairness Index
-            dist = results.get("distribution", {})
-            counts = [dist.get(s, 0) for s in ["srv1", "srv2", "srv3", "srv4"]]
+                # Brief pause between iterations to allow flow timeouts to expire
+                if run_idx < BENCHMARK_ITERATIONS:
+                    time.sleep(2)
 
+            # Aggregate results across iterations (average metrics)
+            agg_dist = {}
+            agg_rps = 0.0
+            agg_lat = 0.0
+            for run_data in iteration_results:
+                d = run_data.get("distribution", {})
+                for srv, cnt in d.items():
+                    agg_dist[srv] = agg_dist.get(srv, 0) + cnt
+                agg_rps += run_data.get("throughput_rps", 0.0)
+                agg_lat += run_data.get("latency_ms", {}).get("avg", 0.0)
+
+            n_runs = len(iteration_results)
+            avg_dist = {srv: cnt / n_runs for srv, cnt in agg_dist.items()}
+            avg_rps = agg_rps / n_runs
+            avg_lat = agg_lat / n_runs
+
+            # Compute Jain's Fairness Index from aggregated distribution
+            counts = [agg_dist.get(s, 0) for s in ["srv1", "srv2", "srv3", "srv4"]]
             if algo_key == "weighted":
-                jfi = calculate_weighted_fairness(dist, weights)
+                jfi = calculate_weighted_fairness(agg_dist, weights)
             else:
                 jfi = calculate_jains_fairness(counts)
 
-            results["jains_fairness"] = jfi
-            summary_metrics[algo_key] = results
-            print(f"[*] Computed Jain's Fairness Index ({algo_name}): {jfi:.4f}")
+            # Build aggregated result with averaged metrics
+            agg_results = {
+                "distribution": agg_dist,
+                "avg_distribution_per_run": avg_dist,
+                "throughput_rps": round(avg_rps, 2),
+                "latency_ms": {"avg": round(avg_lat, 2)},
+                "jains_fairness": jfi,
+                "iterations": BENCHMARK_ITERATIONS,
+                "records": iteration_results[-1].get("records", [])  # Keep last run's raw records
+            }
+
+            # Save aggregated result as the canonical per-algorithm file
+            canonical_file = os.path.join(RESULTS_DIR, f"{algo_key}.json")
+            with open(canonical_file, "w") as f:
+                json.dump(agg_results, f, indent=2)
+
+            summary_metrics[algo_key] = agg_results
+            print(f"  [*] Averaged Jain's Fairness Index ({algo_name}, {BENCHMARK_ITERATIONS} runs): {jfi:.4f}")
 
         # Save summary JSON
         with open(SUMMARY_JSON_PATH, "w") as f:

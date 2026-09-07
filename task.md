@@ -71,7 +71,7 @@
   - Automatic marking of DOWN backends after consecutive timeouts
   - Seamless pool removal and recovery
 - [x] Implement `controller/traffic_engineer.py`:
-  - Dynamic link utilization threshold detection (e.g. > 75% capacity)
+  - Dynamic link utilization threshold detection (e.g. > 80% capacity)
   - Path computation across topology redundant links
   - Installation of alternate path flows (implicitly covering CPMK-4)
 - [x] Verification:

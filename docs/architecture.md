@@ -120,6 +120,38 @@ To avoid packet ambiguity and race conditions, the single-table and multi-pipeli
 | **10** | Standard Unicast L2/L3 Forwarding | `eth_dst=host_mac` | `OUTPUT:host_port` | `idle=30, hard=60` |
 | **0** | Default Table-Miss | `match=*` | `OUTPUT:OFPP_CONTROLLER` (Buffer: `OFPCML_NO_BUFFER`) | Permanent |
 
+### Annotated `ovs-ofctl dump-flows` Example (Switch s1)
+
+The following is an annotated example of the flow table on the ingress switch `s1` during an active load-balanced session between client `10.0.0.1` and backend `srv2` (`10.0.0.12`) via Path A:
+
+```text
+# Table-Miss: Unmatched packets → Controller (Priority 0)
+cookie=0x0, duration=120.5s, table=0, n_packets=42, priority=0 actions=CONTROLLER:65535
+
+# Forward NAT: Client→VIP rewritten to Client→Backend (Priority 50)
+cookie=0x0, duration=5.2s, table=0, n_packets=8, idle_timeout=20, hard_timeout=60,
+  priority=50, ip,tcp,nw_src=10.0.0.1,nw_dst=10.0.0.100,tp_src=54312,tp_dst=80
+  actions=set_field:10.0.0.12->ip_dst,set_field:00:00:00:00:00:12->eth_dst,output:3
+  # ^^^ output:3 = port to s2 (Path A upper transit)
+
+# Reverse NAT: Backend→Client rewritten to VIP→Client (Priority 40)
+cookie=0x0, duration=5.2s, table=0, n_packets=6, idle_timeout=20, hard_timeout=60,
+  priority=40, ip,tcp,nw_src=10.0.0.12,nw_dst=10.0.0.1,tp_src=80,tp_dst=54312
+  actions=set_field:10.0.0.100->ip_src,set_field:00:00:00:00:00:fe->eth_src,output:1
+  # ^^^ output:1 = port to client h1
+
+# Standard L2 Unicast Learned (Priority 10)
+cookie=0x0, duration=30.1s, table=0, n_packets=3, idle_timeout=30, hard_timeout=60,
+  priority=10, in_port=1,dl_dst=00:00:00:00:00:02
+  actions=output:2
+  # ^^^ Learned host-to-host forwarding for h2
+```
+
+**Key observations:**
+- Forward NAT (`priority=50`) rewrites `nw_dst` from VIP `10.0.0.100` to the selected backend `10.0.0.12` and outputs to the transit switch port.
+- Reverse NAT (`priority=40`) rewrites `nw_src` from the backend IP back to the VIP so the client sees responses from `10.0.0.100`.
+- Both NAT flows use `idle_timeout=20` and `hard_timeout=60` with `OFPFF_SEND_FLOW_REM` flag to trigger `EventOFPFlowRemoved` for connection tracking.
+
 ---
 
 ## 4. End-to-End Packet Walkthrough: Bidirectional NAT Rewriting
@@ -179,7 +211,7 @@ sequenceDiagram
 
 1. **Active Probing (`HealthChecker`):**
    - Continuously performs non-blocking HTTP health checks to each backend instance (`/health`).
-   - If an instance fails consecutive checks (configured limit: 2 failures), the controller removes the node from active load balancing scheduling.
+   - If an instance fails consecutive checks (configured limit: 3 failures), the controller removes the node from active load balancing scheduling.
    - Any active flows targeting the failed node are proactively deleted via `OFPFC_DELETE` to trigger immediate re-selection on subsequent packets.
    - When the backend recovers (1 successful response), it is restored to the pool automatically.
 
@@ -188,4 +220,4 @@ sequenceDiagram
    - Computes delta transmit/receive bytes over polling interval $\Delta t$:
      $$\text{Throughput (bps)} = \frac{(B_t - B_{t-\Delta t}) \times 8}{\Delta t}$$
      $$\text{Utilization (\%)} = \frac{\text{Throughput}}{\text{Link Capacity (10 Mbps)}} \times 100$$
-   - When the primary transit path ($s1 \leftrightarrow s2 \leftrightarrow s4$) exceeds 75% link capacity, the controller redirects new and elephant flows across the alternate path ($s1 \leftrightarrow s3 \leftrightarrow s4$).
+   - When the primary transit path ($s1 \leftrightarrow s2 \leftrightarrow s4$) exceeds 80% link capacity, the controller redirects new and elephant flows across the alternate path ($s1 \leftrightarrow s3 \leftrightarrow s4$).

@@ -98,7 +98,7 @@ DEFAULT_ALGORITHM = ALGO_ROUND_ROBIN
 
 # Traffic Engineering & Telemetry Settings
 LINK_CAPACITY_BPS = 10 * 1000 * 1000  # 10 Mbps
-TE_THRESHOLD_RATIO = 0.75             # 75% bandwidth triggers alternate path
+TE_THRESHOLD_RATIO = 0.80             # 80% bandwidth triggers alternate path
 STATS_POLL_INTERVAL = 5               # Port/flow stats polling interval (seconds)
-HEALTH_CHECK_INTERVAL = 5             # Active health probe interval (seconds)
+HEALTH_CHECK_INTERVAL = 10            # Active health probe interval (seconds)
 HEALTH_FAIL_LIMIT = 3                 # Consecutive fails before marking DOWN
