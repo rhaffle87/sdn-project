@@ -284,9 +284,9 @@ class LoadBalancerRestController(ControllerBase):
             path = data.get('path')
             if path and self.app.te.force_path(path):
                 return Response(status=200, content_type='application/json',
-                                body=json.dumps({"status": "success", "preferred_path": path}))
+                                body=json.dumps({"status": "success", "preferred_path": self.app.preferred_path, "manual_override": self.app.te.manual_override}))
             return Response(status=400, content_type='application/json',
-                            body=json.dumps({"status": "error", "message": "Invalid path name (use 'path_a' or 'path_b')"}))
+                            body=json.dumps({"status": "error", "message": "Invalid path name (use 'path_a', 'path_b', or 'auto')"}))
         except Exception as e:
             return Response(status=500, content_type='application/json',
                             body=json.dumps({"status": "error", "message": str(e)}))

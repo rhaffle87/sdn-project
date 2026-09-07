@@ -226,8 +226,9 @@ DASHBOARD_HTML = """
                 <button id="btn-w" onclick="setAlgorithm('weighted')">Weighted (1:2:1:2)</button>
             </div>
             <div style="margin-top: 18px;">
-                <p style="font-size: 0.85rem; color: #8b949e;">Manual Path Override (Traffic Engineering):</p>
+                <p style="font-size: 0.85rem; color: #8b949e;">Transit Path Selection (Traffic Engineering):</p>
                 <div class="btn-group">
+                    <button id="btn-path-auto" onclick="setPath('auto')" class="active">Auto (Adaptive TE)</button>
                     <button id="btn-path-a" onclick="setPath('path_a')">Force Path A (Upper)</button>
                     <button id="btn-path-b" onclick="setPath('path_b')">Force Path B (Lower)</button>
                 </div>
@@ -358,15 +359,20 @@ DASHBOARD_HTML = """
                     "weighted": "Weighted (1:2:1:2)"
                 };
                 document.getElementById('active-algo-badge').innerText = 'Algorithm: ' + (algoNames[data.algorithm] || data.algorithm);
-                document.getElementById('active-path-badge').innerText = 'Active Path: ' + (data.preferred_path === 'path_a' ? 'Path A (Upper)' : 'Path B (Lower)');
+                
+                const manualLock = data.manual_override || (data.te_status && data.te_status.manual_override);
+                const pathSuffix = manualLock ? ' [Locked]' : ' [Adaptive Auto]';
+                const pathName = data.preferred_path === 'path_a' ? 'Path A (Upper)' : 'Path B (Lower)';
+                document.getElementById('active-path-badge').innerText = `Active Path: ${pathName}${pathSuffix}`;
 
                 // 2. Update active buttons
                 document.getElementById('btn-rr').className = data.algorithm === 'round_robin' ? 'active' : '';
                 document.getElementById('btn-lc').className = data.algorithm === 'least_connections' ? 'active' : '';
                 document.getElementById('btn-w').className = data.algorithm === 'weighted' ? 'active' : '';
 
-                document.getElementById('btn-path-a').className = data.preferred_path === 'path_a' ? 'active' : '';
-                document.getElementById('btn-path-b').className = data.preferred_path === 'path_b' ? 'active' : '';
+                document.getElementById('btn-path-auto').className = !manualLock ? 'active' : '';
+                document.getElementById('btn-path-a').className = manualLock === 'path_a' ? 'active' : '';
+                document.getElementById('btn-path-b').className = manualLock === 'path_b' ? 'active' : '';
 
                 // 3. Update Path Badges
                 if (data.preferred_path === 'path_a') {
@@ -517,7 +523,11 @@ DASHBOARD_HTML = """
         }
 
         async function setPath(path) {
-            const pathNames = { "path_a": "Path A (s1 -> s2 -> s4)", "path_b": "Path B (s1 -> s3 -> s4)" };
+            const pathNames = { 
+                "auto": "Auto (Adaptive Dynamic TE - Congestion Rerouting)",
+                "path_a": "Path A (Upper) [Manual Lock]", 
+                "path_b": "Path B (Lower) [Manual Lock]" 
+            };
             try {
                 const res = await fetch('/api/set-path', {
                     method: 'POST',
@@ -525,7 +535,7 @@ DASHBOARD_HTML = """
                     body: JSON.stringify({ path: path })
                 });
                 if (res.ok) {
-                    logEvent('Traffic Engineering', 'log-tag-te', `Transit path manually forced to: ${pathNames[path] || path}`);
+                    logEvent('Traffic Engineering', 'log-tag-te', `Transit path mode set to: ${pathNames[path] || path}`);
                 } else {
                     logEvent('Error', 'log-tag-health', `Failed to set path: HTTP ${res.status}`);
                 }
@@ -658,6 +668,8 @@ def get_dashboard_data():
             te_status = te_data.get("traffic_engineering", {})
             if "preferred_path" in te_status:
                 combined["preferred_path"] = te_status["preferred_path"]
+            if "manual_override" in te_status:
+                combined["manual_override"] = te_status["manual_override"]
             combined["te_status"] = te_status
     except Exception:
         pass
