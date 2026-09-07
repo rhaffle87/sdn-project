@@ -2,12 +2,15 @@
 """
 Live Web Telemetry & Management Dashboard
 Provides real-time visualization of backend load distribution, link bandwidth utilization,
-health states, and allows runtime switching of load balancing algorithms and transit paths.
+health states, interactive traffic generation, server crash simulation, and telemetry event streaming.
 """
 
+import collections
 import json
 import logging
 import os
+import subprocess
+import time
 import urllib.request
 import urllib.error
 from flask import Flask, render_template_string, jsonify, request
@@ -58,9 +61,9 @@ DASHBOARD_HTML = """
             background: #1f6feb22;
             border: 1px solid var(--primary);
             color: var(--primary);
-            padding: 4px 10px;
+            padding: 5px 12px;
             border-radius: 20px;
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             font-weight: 600;
         }
         .grid {
@@ -77,17 +80,18 @@ DASHBOARD_HTML = """
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
         .card h2 {
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             color: var(--text-bright);
-            margin-bottom: 16px;
+            margin-bottom: 14px;
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
         .btn-group {
             display: flex;
+            flex-wrap: wrap;
             gap: 8px;
-            margin-top: 12px;
+            margin-top: 10px;
         }
         button {
             background: #21262d;
@@ -101,12 +105,45 @@ DASHBOARD_HTML = """
             transition: all 0.2s;
         }
         button:hover { background: #30363d; color: var(--text-bright); }
-        button.active { background: var(--primary); color: #0d1117; font-weight: 600; border-color: var(--primary); }
+        button.active {
+            background: var(--primary);
+            color: #0d1117;
+            font-weight: 700;
+            border-color: var(--primary);
+            box-shadow: 0 0 10px rgba(88, 166, 255, 0.4);
+        }
+        button.btn-accent {
+            background: #1f6feb;
+            color: #ffffff;
+            border-color: #388bfd;
+            font-weight: 600;
+        }
+        button.btn-accent:hover { background: #388bfd; }
+        button.btn-danger {
+            background: #21262d;
+            border-color: #da3633;
+            color: #f85149;
+        }
+        button.btn-danger:hover { background: #da3633; color: #fff; }
+        button.btn-success {
+            background: #21262d;
+            border-color: #238636;
+            color: #3fb950;
+        }
+        button.btn-success:hover { background: #238636; color: #fff; }
+        button.pulsing {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(63, 185, 80, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(63, 185, 80, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(63, 185, 80, 0); }
+        }
         .server-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 10px 0;
+            padding: 12px 0;
             border-bottom: 1px solid #21262d;
         }
         .server-item:last-child { border-bottom: none; }
@@ -143,22 +180,38 @@ DASHBOARD_HTML = """
             border-radius: 6px;
             padding: 12px;
             font-family: monospace;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             color: #8b949e;
-            height: 90px;
+            height: 120px;
             overflow-y: auto;
+            line-height: 1.5;
         }
+        .log-entry { margin-bottom: 3px; }
+        .log-time { color: #6e7681; margin-right: 6px; }
+        .log-tag-lb { color: var(--primary); font-weight: bold; }
+        .log-tag-te { color: var(--purple); font-weight: bold; }
+        .log-tag-traffic { color: var(--warning); font-weight: bold; }
+        .log-tag-health { color: var(--danger); font-weight: bold; }
+        .log-tag-ok { color: var(--success); font-weight: bold; }
+        .path-active-tag {
+            font-size: 0.75rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        .tag-active { background: #23863633; color: var(--success); border: 1px solid var(--success); }
+        .tag-standby { background: #30363d; color: #8b949e; }
     </style>
 </head>
 <body>
     <header>
         <div>
-            <h1>SDN Load Balancer & Traffic Engineering Telemetry</h1>
+            <h1>SDN Load Balancer &amp; Traffic Engineering Telemetry</h1>
             <p style="font-size: 0.85rem; color: #8b949e; margin-top: 4px;">OpenFlow 1.3 Control Plane &amp; Data Center Traffic Optimization</p>
         </div>
         <div style="display: flex; gap: 10px; align-items: center;">
             <span class="badge" id="active-algo-badge">Algorithm: Round-Robin</span>
-            <span class="badge" style="border-color: var(--purple); color: var(--purple);" id="active-path-badge">Active Path: Path A</span>
+            <span class="badge" style="border-color: var(--purple); color: var(--purple);" id="active-path-badge">Active Path: Path A (Upper)</span>
         </div>
     </header>
 
@@ -181,60 +234,124 @@ DASHBOARD_HTML = """
             </div>
         </div>
 
-        <!-- 2. Path Bandwidth Utilization -->
+        <!-- 2. Traffic Generator & Simulator -->
+        <div class="card">
+            <h2>Client Traffic Generator</h2>
+            <p style="font-size: 0.85rem; color: #8b949e;">Dispatch HTTP requests from Mininet client <code>h1</code> targeting VIP <code>10.0.0.100:80</code>:</p>
+            <div class="btn-group">
+                <button class="btn-accent" onclick="sendTraffic(1)">⚡ Send 1 Request</button>
+                <button class="btn-accent" onclick="sendTraffic(8)">🚀 Send 8 Requests (Burst)</button>
+                <button id="btn-auto-traffic" onclick="toggleContinuousTraffic()">🌊 Continuous Traffic: OFF</button>
+            </div>
+            <div style="margin-top: 16px;">
+                <div class="metric-row">
+                    <span style="color: #8b949e;">Generator Status:</span>
+                    <span id="gen-status" style="color: var(--text-bright); font-weight: 500;">Idle</span>
+                </div>
+                <div class="metric-row" style="margin-top: 4px;">
+                    <span style="color: #8b949e;">Last Dispatch Latency:</span>
+                    <span id="gen-latency" style="color: var(--primary);">-- ms</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Transit Link Telemetry -->
         <div class="card">
             <h2>Transit Link Telemetry (10 Mbps Links)</h2>
             <div style="margin-bottom: 14px;">
                 <div class="metric-row">
-                    <span>Path A (s1 &harr; s2 &harr; s4)</span>
-                    <span id="path-a-text">0.0 kbps (0.0%)</span>
+                    <span>
+                        Path A (s1 &harr; s2 &harr; s4)
+                        <span id="path-a-tag" class="path-active-tag tag-active">ACTIVE</span>
+                    </span>
+                    <span id="path-a-text" style="font-weight: 600;">0.0 kbps (0.0%)</span>
                 </div>
                 <div class="bar-container">
                     <div class="bar-fill bar-primary" id="path-a-bar" style="width: 0%;"></div>
                 </div>
+                <div class="metric-row" style="font-size: 0.78rem; color: #8b949e;">
+                    <span>Cumulative Data:</span>
+                    <span id="path-a-cum">0 KB</span>
+                </div>
             </div>
             <div>
                 <div class="metric-row">
-                    <span>Path B (s1 &harr; s3 &harr; s4)</span>
-                    <span id="path-b-text">0.0 kbps (0.0%)</span>
+                    <span>
+                        Path B (s1 &harr; s3 &harr; s4)
+                        <span id="path-b-tag" class="path-active-tag tag-standby">STANDBY</span>
+                    </span>
+                    <span id="path-b-text" style="font-weight: 600;">0.0 kbps (0.0%)</span>
                 </div>
                 <div class="bar-container">
                     <div class="bar-fill bar-primary" id="path-b-bar" style="width: 0%;"></div>
                 </div>
+                <div class="metric-row" style="font-size: 0.78rem; color: #8b949e;">
+                    <span>Cumulative Data:</span>
+                    <span id="path-b-cum">0 KB</span>
+                </div>
             </div>
-            <div style="margin-top: 14px;">
+            <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid #21262d;">
                 <div class="metric-row">
-                    <span style="color: #8b949e;">TE Trigger Status:</span>
-                    <span id="te-status" style="color: var(--success); font-weight: 600;">Nominal</span>
+                    <span style="color: #8b949e;">Adaptive TE Status:</span>
+                    <span id="te-status" style="color: var(--success); font-weight: 600;">Nominal (&lt; 80%)</span>
                 </div>
             </div>
         </div>
 
-        <!-- 3. Traffic Engineering Log -->
-        <div class="card">
-            <h2>Telemetry Events</h2>
-            <div class="log-box" id="event-log">
-                [System] Telemetry stream initialized.<br>
-                [TE] Monitoring link utilization thresholds...
-            </div>
+        <!-- 4. Telemetry Events Log -->
+        <div class="card" style="grid-column: 1 / -1;">
+            <h2>
+                <span>Telemetry Events &amp; Audit Log</span>
+                <button onclick="clearLogs()" style="padding: 4px 10px; font-size: 0.75rem;">Clear Log</button>
+            </h2>
+            <div class="log-box" id="event-log"></div>
         </div>
     </div>
 
-    <!-- 4. Backend Server Pool -->
+    <!-- 5. Backend Server Pool -->
     <div class="card">
-        <h2>Backend Application Server Pool (Virtual IP: 10.0.0.100:80)</h2>
+        <h2>
+            <span>Backend Application Server Pool (Virtual IP: 10.0.0.100:80)</span>
+            <span style="font-size: 0.85rem; color: #8b949e; font-weight: normal;">Simulate server crash or recovery by clicking action buttons</span>
+        </h2>
         <div id="backend-list">
             Loading backend statuses...
         </div>
     </div>
 
     <script>
+        let previousTotalRequests = {};
+        let continuousTrafficTimer = null;
+        let isGenerating = false;
+
+        function getTimestamp() {
+            const now = new Date();
+            return now.toTimeString().split(' ')[0];
+        }
+
+        function logEvent(tag, tagClass, message) {
+            const box = document.getElementById('event-log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `<span class="log-time">[${getTimestamp()}]</span> <span class="${tagClass}">[${tag}]</span> ${message}`;
+            box.appendChild(entry);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function clearLogs() {
+            document.getElementById('event-log').innerHTML = '';
+            logEvent('System', 'log-tag-ok', 'Event log cleared.');
+        }
+
+        // Initial system event
+        logEvent('System', 'log-tag-ok', 'Telemetry monitoring initialized and streaming.');
+
         async function fetchTelemetry() {
             try {
                 const res = await fetch('/api/data');
                 const data = await res.json();
 
-                // Update Algorithm & Path Badges
+                // 1. Update Algorithm & Path Badges
                 const algoNames = {
                     "round_robin": "Round-Robin",
                     "least_connections": "Least-Connections",
@@ -243,31 +360,79 @@ DASHBOARD_HTML = """
                 document.getElementById('active-algo-badge').innerText = 'Algorithm: ' + (algoNames[data.algorithm] || data.algorithm);
                 document.getElementById('active-path-badge').innerText = 'Active Path: ' + (data.preferred_path === 'path_a' ? 'Path A (Upper)' : 'Path B (Lower)');
 
-                // Update active buttons
+                // 2. Update active buttons
                 document.getElementById('btn-rr').className = data.algorithm === 'round_robin' ? 'active' : '';
                 document.getElementById('btn-lc').className = data.algorithm === 'least_connections' ? 'active' : '';
                 document.getElementById('btn-w').className = data.algorithm === 'weighted' ? 'active' : '';
 
-                // Update Link Telemetry
+                document.getElementById('btn-path-a').className = data.preferred_path === 'path_a' ? 'active' : '';
+                document.getElementById('btn-path-b').className = data.preferred_path === 'path_b' ? 'active' : '';
+
+                // 3. Update Path Badges
+                if (data.preferred_path === 'path_a') {
+                    document.getElementById('path-a-tag').className = 'path-active-tag tag-active';
+                    document.getElementById('path-a-tag').innerText = 'ACTIVE';
+                    document.getElementById('path-b-tag').className = 'path-active-tag tag-standby';
+                    document.getElementById('path-b-tag').innerText = 'STANDBY';
+                } else {
+                    document.getElementById('path-a-tag').className = 'path-active-tag tag-standby';
+                    document.getElementById('path-a-tag').innerText = 'STANDBY';
+                    document.getElementById('path-b-tag').className = 'path-active-tag tag-active';
+                    document.getElementById('path-b-tag').innerText = 'ACTIVE';
+                }
+
+                // 4. Update Link Telemetry
                 const linkStats = data.link_stats || {};
-                const pa = linkStats.path_a || { bps: 0, ratio: 0 };
-                const pb = linkStats.path_b || { bps: 0, ratio: 0 };
+                const pa = linkStats.path_a || { bps: 0, ratio: 0, tx_bytes: 0 };
+                const pb = linkStats.path_b || { bps: 0, ratio: 0, tx_bytes: 0 };
 
                 const paPct = Math.min(100, (pa.ratio * 100)).toFixed(1);
                 const pbPct = Math.min(100, (pb.ratio * 100)).toFixed(1);
 
-                document.getElementById('path-a-text').innerText = `${(pa.bps / 1000).toFixed(1)} kbps (${paPct}%)`;
-                document.getElementById('path-a-bar').style.width = paPct + '%';
-                document.getElementById('path-a-bar').className = 'bar-fill ' + (paPct > 75 ? 'bar-danger' : paPct > 50 ? 'bar-warning' : 'bar-primary');
+                // Format rate nicely (bps, kbps, Mbps)
+                function formatRate(bps) {
+                    if (bps >= 1000000) return (bps / 1000000).toFixed(2) + ' Mbps';
+                    if (bps >= 1000) return (bps / 1000).toFixed(1) + ' kbps';
+                    return bps.toFixed(0) + ' bps';
+                }
 
-                document.getElementById('path-b-text').innerText = `${(pb.bps / 1000).toFixed(1)} kbps (${pbPct}%)`;
-                document.getElementById('path-b-bar').style.width = pbPct + '%';
-                document.getElementById('path-b-bar').className = 'bar-fill ' + (pbPct > 75 ? 'bar-danger' : pbPct > 50 ? 'bar-warning' : 'bar-primary');
+                function formatBytes(bytes) {
+                    if (bytes >= 1048576) return (bytes / 1048576).toFixed(2) + ' MB';
+                    if (bytes >= 1024) return (bytes / 1024).toFixed(1) + ' KB';
+                    return bytes + ' B';
+                }
 
-                // Update Backend Server List
+                document.getElementById('path-a-text').innerText = `${formatRate(pa.bps)} (${paPct}%)`;
+                document.getElementById('path-a-bar').style.width = Math.max(paPct > 0 ? 3 : 0, paPct) + '%';
+                document.getElementById('path-a-bar').className = 'bar-fill ' + (paPct > 80 ? 'bar-danger' : paPct > 50 ? 'bar-warning' : 'bar-primary');
+                document.getElementById('path-a-cum').innerText = formatBytes(pa.tx_bytes || 0);
+
+                document.getElementById('path-b-text').innerText = `${formatRate(pb.bps)} (${pbPct}%)`;
+                document.getElementById('path-b-bar').style.width = Math.max(pbPct > 0 ? 3 : 0, pbPct) + '%';
+                document.getElementById('path-b-bar').className = 'bar-fill ' + (pbPct > 80 ? 'bar-danger' : pbPct > 50 ? 'bar-warning' : 'bar-primary');
+                document.getElementById('path-b-cum').innerText = formatBytes(pb.tx_bytes || 0);
+
+                const maxUtil = Math.max(pa.ratio, pb.ratio);
+                const teEl = document.getElementById('te-status');
+                if (maxUtil >= 0.80) {
+                    teEl.innerText = `Saturated! (${(maxUtil*100).toFixed(1)}%) - Alternate Path Rerouted`;
+                    teEl.style.color = 'var(--danger)';
+                } else if (maxUtil >= 0.50) {
+                    teEl.innerText = `Elevated (${(maxUtil*100).toFixed(1)}%)`;
+                    teEl.style.color = 'var(--warning)';
+                } else {
+                    teEl.innerText = 'Nominal (< 80% Threshold)';
+                    teEl.style.color = 'var(--success)';
+                }
+
+                // 5. Update Backend Server List & Detect traffic deltas
                 const backends = data.backends || [];
                 const reqCounts = data.total_requests || {};
                 const activeConns = data.active_connections || {};
+
+                // Calculate total across all backends for percentage bars
+                let grandTotal = 0;
+                backends.forEach(b => { grandTotal += (reqCounts[b.id] || 0); });
 
                 let html = '';
                 backends.forEach(b => {
@@ -275,21 +440,42 @@ DASHBOARD_HTML = """
                     const statusText = b.healthy ? 'ONLINE' : 'OFFLINE';
                     const totalReq = reqCounts[b.id] || 0;
                     const conns = activeConns[b.id] || 0;
+                    const sharePct = grandTotal > 0 ? ((totalReq / grandTotal) * 100).toFixed(1) : 0;
+
+                    // Detect delta for logging
+                    const prevReq = previousTotalRequests[b.id] || 0;
+                    if (totalReq > prevReq && Object.keys(previousTotalRequests).length > 0) {
+                        const delta = totalReq - prevReq;
+                        logEvent('LoadBalancer', 'log-tag-lb', `${b.id} served +${delta} new client requests (Total: ${totalReq})`);
+                    }
+
+                    // Toggle button
+                    const toggleBtn = b.healthy 
+                        ? `<button class="btn-danger" style="padding: 4px 10px; font-size: 0.78rem;" onclick="toggleServer('${b.id}', false)">Simulate Crash</button>`
+                        : `<button class="btn-success" style="padding: 4px 10px; font-size: 0.78rem;" onclick="toggleServer('${b.id}', true)">Recover Server</button>`;
+
                     html += `
                     <div class="server-item">
-                        <div>
-                            <span class="status-dot ${statusClass}"></span>
-                            <strong style="color: var(--text-bright);">${b.id}</strong>
-                            <span style="color: #8b949e; font-size: 0.85rem; margin-left: 8px;">(${b.ip}:${b.port}) | Weight: ${b.weight}</span>
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center;">
+                                <span class="status-dot ${statusClass}"></span>
+                                <strong style="color: var(--text-bright); font-size: 0.95rem;">${b.id}</strong>
+                                <span style="color: #8b949e; font-size: 0.85rem; margin-left: 10px;">${b.ip}:${b.port} &bull; Configured Weight: ${b.weight}</span>
+                            </div>
+                            <div class="bar-container" style="height: 6px; width: 85%; margin-top: 6px;">
+                                <div class="bar-fill bar-primary" style="width: ${sharePct}%;"></div>
+                            </div>
                         </div>
                         <div style="display: flex; gap: 20px; align-items: center; font-size: 0.85rem;">
                             <span>Active Conns: <strong>${conns}</strong></span>
-                            <span>Total Served: <strong>${totalReq}</strong></span>
+                            <span>Total Served: <strong>${totalReq}</strong> <small style="color: #8b949e;">(${sharePct}%)</small></span>
                             <span style="font-weight: 600; color: ${b.healthy ? 'var(--success)' : 'var(--danger)'};">${statusText}</span>
+                            ${toggleBtn}
                         </div>
                     </div>`;
                 });
                 document.getElementById('backend-list').innerHTML = html;
+                previousTotalRequests = Object.assign({}, reqCounts);
 
             } catch (err) {
                 console.error("Failed to fetch telemetry:", err);
@@ -297,23 +483,130 @@ DASHBOARD_HTML = """
         }
 
         async function setAlgorithm(algo) {
-            await fetch('/api/set-algo', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ algorithm: algo })
-            });
+            const algoNames = {
+                "round_robin": "Round-Robin",
+                "least_connections": "Least-Connections",
+                "weighted": "Weighted (1:2:1:2)"
+            };
+            try {
+                const res = await fetch('/api/set-algo', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ algorithm: algo })
+                });
+                if (res.ok) {
+                    logEvent('LB Policy', 'log-tag-lb', `Algorithm policy changed to: ${algoNames[algo] || algo}`);
+                } else {
+                    logEvent('Error', 'log-tag-health', `Failed to change algorithm: HTTP ${res.status}`);
+                }
+            } catch (e) {
+                logEvent('Error', 'log-tag-health', `Algorithm switch error: ${e.message}`);
+            }
             fetchTelemetry();
         }
 
         async function setPath(path) {
-            await fetch('/api/set-path', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ path: path })
-            });
+            const pathNames = { "path_a": "Path A (s1 -> s2 -> s4)", "path_b": "Path B (s1 -> s3 -> s4)" };
+            try {
+                const res = await fetch('/api/set-path', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: path })
+                });
+                if (res.ok) {
+                    logEvent('Traffic Engineering', 'log-tag-te', `Transit path manually forced to: ${pathNames[path] || path}`);
+                } else {
+                    logEvent('Error', 'log-tag-health', `Failed to set path: HTTP ${res.status}`);
+                }
+            } catch (e) {
+                logEvent('Error', 'log-tag-health', `Path switch error: ${e.message}`);
+            }
             fetchTelemetry();
         }
 
+        async function sendTraffic(count) {
+            if (isGenerating) return;
+            isGenerating = true;
+            document.getElementById('gen-status').innerText = `Sending ${count} requests to VIP...`;
+            document.getElementById('gen-status').style.color = 'var(--warning)';
+
+            const start = performance.now();
+            try {
+                const res = await fetch('/api/generate-traffic', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ count: count })
+                });
+                const elapsed = (performance.now() - start).toFixed(1);
+                document.getElementById('gen-latency').innerText = `${elapsed} ms`;
+
+                const data = await res.json();
+                if (data.status === 'success') {
+                    document.getElementById('gen-status').innerText = `Success (${count} reqs sent)`;
+                    document.getElementById('gen-status').style.color = 'var(--success)';
+                    
+                    const servedSummary = data.breakdown 
+                        ? Object.entries(data.breakdown).map(([k, v]) => `${k}: ${v}`).join(', ')
+                        : `${count} requests distributed`;
+                    logEvent('Traffic Gen', 'log-tag-traffic', `Dispatched ${count} client requests to VIP (10.0.0.100). Served: [${servedSummary}] in ${elapsed}ms`);
+                } else {
+                    document.getElementById('gen-status').innerText = 'Error';
+                    document.getElementById('gen-status').style.color = 'var(--danger)';
+                    logEvent('Traffic Gen', 'log-tag-health', `Traffic generation failed: ${data.message}`);
+                }
+            } catch (e) {
+                document.getElementById('gen-status').innerText = 'Failed';
+                document.getElementById('gen-status').style.color = 'var(--danger)';
+                logEvent('Traffic Gen', 'log-tag-health', `Network error: ${e.message}`);
+            } finally {
+                isGenerating = false;
+                fetchTelemetry();
+            }
+        }
+
+        function toggleContinuousTraffic() {
+            const btn = document.getElementById('btn-auto-traffic');
+            if (continuousTrafficTimer) {
+                clearInterval(continuousTrafficTimer);
+                continuousTrafficTimer = null;
+                btn.className = '';
+                btn.innerText = '🌊 Continuous Traffic: OFF';
+                logEvent('Traffic Gen', 'log-tag-ok', 'Continuous background traffic generator stopped.');
+            } else {
+                btn.className = 'btn-success pulsing';
+                btn.innerText = '⏸ Continuous Traffic: ON (2 req/s)';
+                logEvent('Traffic Gen', 'log-tag-traffic', 'Continuous background traffic generator started (2 requests every 1.5s).');
+                // Run immediately then every 1.5s
+                sendTraffic(2);
+                continuousTrafficTimer = setInterval(() => {
+                    sendTraffic(2);
+                }, 1500);
+            }
+        }
+
+        async function toggleServer(backendId, healthyState) {
+            const action = healthyState ? 'recovering' : 'crashing';
+            logEvent('Health Prober', healthyState ? 'log-tag-ok' : 'log-tag-health', `Simulating ${action} on ${backendId}...`);
+            try {
+                const res = await fetch('/api/toggle-server', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ backend_id: backendId, healthy: healthyState })
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    logEvent('Health Prober', healthyState ? 'log-tag-ok' : 'log-tag-health', 
+                             `${backendId} is now ${healthyState ? 'ONLINE (re-added to pool)' : 'OFFLINE (excluded from load balancer)'}!`);
+                } else {
+                    logEvent('Error', 'log-tag-health', `Failed to toggle ${backendId}: ${data.message}`);
+                }
+            } catch (e) {
+                logEvent('Error', 'log-tag-health', `Server toggle error: ${e.message}`);
+            }
+            fetchTelemetry();
+        }
+
+        // Live polling every 2 seconds
         setInterval(fetchTelemetry, 2000);
         fetchTelemetry();
     </script>
@@ -358,7 +651,7 @@ def get_dashboard_data():
 
 @app.route("/api/set-algo", methods=["POST"])
 def set_algo():
-    payload = request.get_json()
+    payload = request.get_json(silent=True) or {}
     url = f"{RYU_REST_BASE}/algorithm"
     data = json.dumps(payload).encode('utf-8')
     req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'}, method='POST')
@@ -375,12 +668,77 @@ def set_algo():
 
 @app.route("/api/set-path", methods=["POST"])
 def set_path():
-    payload = request.get_json()
+    payload = request.get_json(silent=True) or {}
     url = f"{RYU_REST_BASE}/traffic-engineer/path"
     data = json.dumps(payload).encode('utf-8')
     req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'}, method='POST')
     try:
         with urllib.request.urlopen(req, timeout=2) as resp:
+            return jsonify(json.loads(resp.read().decode())), resp.status
+    except urllib.error.HTTPError as he:
+        try:
+            return jsonify(json.loads(he.read().decode())), he.code
+        except Exception:
+            return jsonify({"status": "error", "message": str(he)}), he.code
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route("/api/generate-traffic", methods=["POST"])
+def generate_traffic():
+    """Dispatch client requests from Mininet client h1 to VIP 10.0.0.100."""
+    payload = request.get_json(silent=True) or {}
+    count = int(payload.get("count", 4))
+    count = max(1, min(50, count))
+
+    try:
+        # 1. Locate h1 Mininet PID
+        out = subprocess.check_output(["pgrep", "-f", "mininet:h1"]).decode().strip().split()
+        if not out:
+            return jsonify({"status": "error", "message": "Mininet host h1 is not running"}), 500
+        h1_pid = out[0]
+
+        # 2. Run Python requests script inside h1 network namespace
+        py_snippet = (
+            "import urllib.request, json\n"
+            "results = []\n"
+            f"for _ in range({count}):\n"
+            "    try:\n"
+            "        with urllib.request.urlopen('http://10.0.0.100/', timeout=2) as r:\n"
+            "            d = json.loads(r.read().decode())\n"
+            "            results.append(d.get('server_id', 'unknown'))\n"
+            "    except Exception:\n"
+            "        results.append('error')\n"
+            "print(json.dumps(results))\n"
+        )
+        cmd = ["sudo", "mnexec", "-a", h1_pid, "python3", "-c", py_snippet]
+        raw_out = subprocess.check_output(cmd, timeout=12).decode().strip()
+        
+        servers = json.loads(raw_out)
+        breakdown = collections.Counter(servers)
+        return jsonify({
+            "status": "success",
+            "count": count,
+            "servers": servers,
+            "breakdown": dict(breakdown)
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route("/api/toggle-server", methods=["POST"])
+def toggle_server():
+    """Simulate server crash or recovery by forwarding to Ryu health API."""
+    payload = request.get_json(silent=True) or {}
+    b_id = payload.get("backend_id")
+    healthy = payload.get("healthy")
+
+    if not b_id or healthy is None:
+        return jsonify({"status": "error", "message": "Missing backend_id or healthy state"}), 400
+
+    url = f"{RYU_REST_BASE}/backend/health"
+    data = json.dumps({"backend_id": b_id, "healthy": bool(healthy)}).encode('utf-8')
+    req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'}, method='POST')
+    try:
+        with urllib.request.urlopen(req, timeout=3) as resp:
             return jsonify(json.loads(resp.read().decode())), resp.status
     except urllib.error.HTTPError as he:
         try:
