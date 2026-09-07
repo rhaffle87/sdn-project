@@ -23,6 +23,9 @@ from controller import config
 from controller.flow_manager import add_flow, send_packet_out
 from controller.load_balancer import LoadBalancer
 from controller.topology_discovery import TopologyDiscovery
+from controller.stats_monitor import StatsMonitor
+from controller.health_checker import HealthChecker
+from controller.traffic_engineer import TrafficEngineer
 
 # REST API URL Prefix
 REST_URL_PREFIX = '/api'
@@ -43,6 +46,11 @@ class SDNLoadBalancerApp(app_manager.RyuApp):
 
         # Preferred transit path (can be changed by TrafficEngineer)
         self.preferred_path = "path_a"
+
+        # Initialize Telemetry, Active Health Probing, and Traffic Engineering
+        self.stats = StatsMonitor(self)
+        self.health = HealthChecker(self)
+        self.te = TrafficEngineer(self)
 
         # Register WSGI REST endpoints
         wsgi = kwargs['wsgi']
@@ -81,6 +89,11 @@ class SDNLoadBalancerApp(app_manager.RyuApp):
 
         self.topo.update_port_status(dp.id, port_no, is_up)
         self.logger.info("[OFP] PortStatus: DPID %d Port %d is %s", dp.id, port_no, "UP" if is_up else "DOWN")
+
+    @set_ev_cls(ofp_event.EventOFPPortStatsReply, MAIN_DISPATCHER)
+    def port_stats_reply_handler(self, ev):
+        """Delegate port stats message to StatsMonitor."""
+        self.stats.handle_port_stats_reply(ev)
 
     @set_ev_cls(ofp_event.EventOFPFlowRemoved, MAIN_DISPATCHER)
     def flow_removed_handler(self, ev):
@@ -237,6 +250,49 @@ class LoadBalancerRestController(ControllerBase):
                                 body=json.dumps({"status": "success", "algorithm": algo}))
             return Response(status=400, content_type='application/json',
                             body=json.dumps({"status": "error", "message": "Invalid algorithm name"}))
+        except Exception as e:
+            return Response(status=500, content_type='application/json',
+                            body=json.dumps({"status": "error", "message": str(e)}))
+
+    @route('loadbalancer', '/api/telemetry', methods=['GET'])
+    def get_telemetry(self, req, **_kwargs):
+        """GET /api/telemetry: Return real-time link bandwidth utilization and TE status."""
+        body = json.dumps({
+            "traffic_engineering": self.app.te.get_te_status(),
+            "link_utilization": self.app.stats.get_link_utilization(),
+            "active_connections": self.app.lb.active_connections,
+            "total_requests": self.app.lb.total_requests
+        }, indent=2)
+        return Response(content_type='application/json', body=body)
+
+    @route('loadbalancer', '/api/traffic-engineer/path', methods=['POST'])
+    def set_path(self, req, **_kwargs):
+        """POST /api/traffic-engineer/path: Manually override preferred path (path_a or path_b)."""
+        try:
+            data = json.loads(req.body.decode('utf-8'))
+            path = data.get('path')
+            if path and self.app.te.force_path(path):
+                return Response(status=200, content_type='application/json',
+                                body=json.dumps({"status": "success", "preferred_path": path}))
+            return Response(status=400, content_type='application/json',
+                            body=json.dumps({"status": "error", "message": "Invalid path name (use 'path_a' or 'path_b')"}))
+        except Exception as e:
+            return Response(status=500, content_type='application/json',
+                            body=json.dumps({"status": "error", "message": str(e)}))
+
+    @route('loadbalancer', '/api/backend/health', methods=['POST'])
+    def set_backend_health(self, req, **_kwargs):
+        """POST /api/backend/health: Manually override health state of a backend."""
+        try:
+            data = json.loads(req.body.decode('utf-8'))
+            backend_id = data.get('backend_id')
+            is_healthy = data.get('healthy')
+            if backend_id is not None and is_healthy is not None:
+                self.app.health.force_set_health(backend_id, bool(is_healthy))
+                return Response(status=200, content_type='application/json',
+                                body=json.dumps({"status": "success", "backend_id": backend_id, "healthy": is_healthy}))
+            return Response(status=400, content_type='application/json',
+                            body=json.dumps({"status": "error", "message": "Missing backend_id or healthy field"}))
         except Exception as e:
             return Response(status=500, content_type='application/json',
                             body=json.dumps({"status": "error", "message": str(e)}))

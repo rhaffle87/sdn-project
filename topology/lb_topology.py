@@ -126,6 +126,10 @@ def run(start_servers=True, interactive=True):
     net.start()
     info("*** Network started.\n")
 
+    # Configure management interface on root namespace so controller can probe backends
+    os.system("sudo ip addr add 10.0.0.254/24 dev s4 2>/dev/null || true")
+    os.system("sudo ip link set s4 up 2>/dev/null || true")
+
     if start_servers:
         start_backend_servers(net, project_root)
 

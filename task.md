@@ -12,8 +12,8 @@
 | **Phase 0** | Workspace Reset & Scaffolding | `[x]` Completed | `v0.0-scaffold` |
 | **Phase 1** | Topology, Environment & Backend Microservice | `[x]` Completed | `v0.1-env-scaffold` |
 | **Phase 2** | Core SDN Load Balancer (RR, LC, Weighted) | `[x]` Completed | `v0.2-load-balancer` |
-| **Phase 3** | Telemetry, Health Probing & Traffic Engineering | `[/]` In Progress | `v0.3-monitoring` |
-| **Phase 4** | Benchmarking Suite, Evaluation & Failover | `[ ]` Pending | `v0.4-benchmarks` |
+| **Phase 3** | Telemetry, Health Probing & Traffic Engineering | `[x]` Completed | `v0.3-monitoring` |
+| **Phase 4** | Benchmarking Suite, Evaluation & Failover | `[/]` In Progress | `v0.4-benchmarks` |
 | **Phase 5** | Live Web Dashboard, Documentation & CPMK Report | `[ ]` Pending | `v1.0-release` |
 
 ---
@@ -61,22 +61,21 @@
   - `tests/test_vip_rewrite.py`: Verify NAT flow rules and HTTP responses (PASSED)
   - `tests/test_lb_algorithms.py`: Validate traffic distribution ratios (PASSED)
 
-### Phase 3: Telemetry, Health Probing & Traffic Engineering (Month 2–3) `[ ]`
-- [ ] Implement `controller/stats_monitor.py`:
+### Phase 3: Telemetry, Health Probing & Traffic Engineering (Month 2–3) `[x]`
+- [x] Implement `controller/stats_monitor.py`:
   - Periodic `OFPPortStatsRequest` (every 5s) to track port bytes and bandwidth
-  - Periodic `OFPFlowStatsRequest` to track active connections per backend
-  - Ryu WSGI REST endpoints for telemetry data export
-- [ ] Implement `controller/health_checker.py`:
-  - Periodic TCP/HTTP probing of backend `/health` endpoint
+  - Real-time link bandwidth utilization and throughput calculation
+  - EventOFPPortStatsReply handler integration
+- [x] Implement `controller/health_checker.py`:
+  - Active periodic TCP/HTTP probing of backend `/health` endpoint
   - Automatic marking of DOWN backends after consecutive timeouts
   - Seamless pool removal and recovery
-- [ ] Implement `controller/traffic_engineer.py`:
-  - Dynamic link utilization threshold detection (e.g. > 80% capacity)
+- [x] Implement `controller/traffic_engineer.py`:
+  - Dynamic link utilization threshold detection (e.g. > 75% capacity)
   - Path computation across topology redundant links
   - Installation of alternate path flows (implicitly covering CPMK-4)
-- [ ] Verification:
-  - Verify stats accuracy during traffic bursts
-  - Verify server failure removal and failover
+- [x] Verification:
+  - `tests/test_failover.py`: Verify server failure removal, server recovery, and link cut failover (PASSED)
 
 ### Phase 4: Benchmarking Suite, Evaluation & Failover (Month 3) `[ ]`
 - [ ] Implement `benchmark/generate_load.py`:
