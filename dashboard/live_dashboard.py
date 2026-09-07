@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import urllib.request
+import urllib.error
 from flask import Flask, render_template_string, jsonify, request
 
 app = Flask(__name__)
@@ -364,6 +365,11 @@ def set_algo():
     try:
         with urllib.request.urlopen(req, timeout=2) as resp:
             return jsonify(json.loads(resp.read().decode())), resp.status
+    except urllib.error.HTTPError as he:
+        try:
+            return jsonify(json.loads(he.read().decode())), he.code
+        except Exception:
+            return jsonify({"status": "error", "message": str(he)}), he.code
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
@@ -376,6 +382,11 @@ def set_path():
     try:
         with urllib.request.urlopen(req, timeout=2) as resp:
             return jsonify(json.loads(resp.read().decode())), resp.status
+    except urllib.error.HTTPError as he:
+        try:
+            return jsonify(json.loads(he.read().decode())), he.code
+        except Exception:
+            return jsonify({"status": "error", "message": str(he)}), he.code
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
