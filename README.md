@@ -145,9 +145,25 @@ sudo /home/rafli_alif/sdn-venv/bin/python3 topology/lb_topology.py
 
 ### 5. Running Verification Tests
 ```bash
-# Verify VIP NAT rewrite and HTTP connectivity
-sudo /home/rafli_alif/sdn-venv/bin/python3 tests/test_vip_rewrite.py
-
-# Run load balancer algorithm benchmark
-sudo /home/rafli_alif/sdn-venv/bin/python3 tests/test_lb_algorithms.py
+# Automated single-command test runner (cleans OVS, starts Ryu, awaits port 6653, and executes test):
+./scripts/run_test.sh tests/test_vip_rewrite.py
+./scripts/run_test.sh tests/test_lb_algorithms.py
+./scripts/run_test.sh tests/test_failover.py
 ```
+
+### 6. Launching Live Web Dashboard
+```bash
+# In a third terminal (with Ryu controller running):
+/home/rafli_alif/sdn-venv/bin/python3 dashboard/live_dashboard.py
+# Access dashboard at: http://localhost:8081
+```
+
+### 7. Running Full Benchmark Suite & Chart Generation
+```bash
+# Execute automated multi-algorithm benchmarks (24 requests x 3 algorithms)
+sudo /home/rafli_alif/sdn-venv/bin/python3 benchmark/run_all_benchmarks.py
+
+# Re-generate scientific figures in figures/ directory
+/home/rafli_alif/sdn-venv/bin/python3 dashboard/plot_results.py
+```
+
