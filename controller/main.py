@@ -42,7 +42,11 @@ class SDNLoadBalancerApp(app_manager.RyuApp):
         self.lb = LoadBalancer()
 
         # MAC-to-port learning table: {dpid: {mac: port}}
-        self.mac_to_port = {}
+        # Seed with static host-facing ports to prevent broadcast loops across diamond topology
+        self.mac_to_port = {
+            config.DPID_S1: {c["mac"]: c["s1_port"] for c in config.CLIENT_POOL.values()},
+            config.DPID_S4: {b["mac"]: b["switch_port"] for b in config.BACKENDS}
+        }
 
         # Preferred transit path (can be changed by TrafficEngineer)
         self.preferred_path = "path_a"
@@ -205,10 +209,11 @@ class SDNLoadBalancerApp(app_manager.RyuApp):
         self.mac_to_port.setdefault(dpid, {})
         self.mac_to_port[dpid][eth_src] = in_port
 
-        if eth_dst in self.mac_to_port[dpid]:
+        if eth_dst in self.mac_to_port.get(dpid, {}):
             out_port = self.mac_to_port[dpid][eth_dst]
         else:
-            out_port = ofproto.OFPP_FLOOD
+            # Do not flood inter-switch mesh to prevent broadcast storms
+            return
 
         actions = [parser.OFPActionOutput(out_port)]
 
