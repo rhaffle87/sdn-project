@@ -14,7 +14,7 @@
 | **Phase 2** | Core SDN Load Balancer (RR, LC, Weighted) | `[x]` Completed | `v0.2-load-balancer` |
 | **Phase 3** | Telemetry, Health Probing & Traffic Engineering | `[x]` Completed | `v0.3-monitoring` |
 | **Phase 4** | Benchmarking Suite, Evaluation & Failover | `[x]` Completed | `v0.4-benchmarks` |
-| **Phase 5** | Live Web Dashboard, Documentation & CPMK Report | `[/]` In Progress | `v1.0-release` |
+| **Phase 5** | Live Web Dashboard, Documentation & CPMK Report | `[x]` Completed | `v1.0-release` |
 
 ---
 
@@ -95,15 +95,15 @@
   - Generate latency vs throughput curves (`latency_cdf.png`)
   - Generate Jain's Fairness comparison figures (`fairness_index_comparison.png`)
 
-### Phase 5: Live Dashboard, Documentation & CPMK Report (Month 4) `[ ]`
-- [ ] Implement `dashboard/live_dashboard.py`:
+### Phase 5: Live Dashboard, Documentation & CPMK Report (Month 4) `[x]`
+- [x] Implement `dashboard/live_dashboard.py`:
   - Flask web app visualizing real-time backend load, link utilization, and server health
-- [ ] Write `docs/architecture.md`:
+- [x] Write `docs/architecture.md`:
   - System architecture diagram (Mermaid)
   - Flow table priority hierarchy and OpenFlow pipeline specification
-- [ ] Write `docs/algorithms.md`:
+- [x] Write `docs/algorithms.md`:
   - Comparative analysis of RR, LC, and Weighted/Utilization-Aware algorithms
-- [ ] Write `docs/cpmk_mapping.md`:
+- [x] Write `docs/cpmk_mapping.md`:
   - Mapping of all features to CPMK-1, CPMK-2, CPMK-3, CPMK-4, and CPMK-5
-- [ ] Write `docs/final_report.md`:
+- [x] Write `docs/final_report.md`:
   - Complete academic capstone report
