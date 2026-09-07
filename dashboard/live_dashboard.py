@@ -449,6 +449,16 @@ DASHBOARD_HTML = """
                         logEvent('LoadBalancer', 'log-tag-lb', `${b.id} served +${delta} new client requests (Total: ${totalReq})`);
                     }
 
+                    // Dynamic contextual weight badge
+                    let weightBadge = '';
+                    if (data.algorithm === 'weighted') {
+                        weightBadge = `<span style="background: rgba(88, 166, 255, 0.15); color: #58a6ff; border: 1px solid rgba(88, 166, 255, 0.3); padding: 2px 7px; border-radius: 10px; font-size: 0.72rem; margin-left: 8px; font-weight: 600;">Weight: ${b.weight} (Active: 1:2:1:2)</span>`;
+                    } else if (data.algorithm === 'round_robin') {
+                        weightBadge = `<span style="background: rgba(139, 148, 158, 0.1); color: #8b949e; border: 1px solid #30363d; padding: 2px 7px; border-radius: 10px; font-size: 0.72rem; margin-left: 8px;">Weight: ${b.weight} (Inactive &bull; Equal 1:1:1:1)</span>`;
+                    } else {
+                        weightBadge = `<span style="background: rgba(139, 148, 158, 0.1); color: #8b949e; border: 1px solid #30363d; padding: 2px 7px; border-radius: 10px; font-size: 0.72rem; margin-left: 8px;">Weight: ${b.weight} (Inactive &bull; Min Connections)</span>`;
+                    }
+
                     // Toggle button
                     const toggleBtn = b.healthy 
                         ? `<button class="btn-danger" style="padding: 4px 10px; font-size: 0.78rem;" onclick="toggleServer('${b.id}', false)">Simulate Crash</button>`
@@ -457,10 +467,11 @@ DASHBOARD_HTML = """
                     html += `
                     <div class="server-item">
                         <div style="flex: 1;">
-                            <div style="display: flex; align-items: center;">
+                            <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 4px;">
                                 <span class="status-dot ${statusClass}"></span>
                                 <strong style="color: var(--text-bright); font-size: 0.95rem;">${b.id}</strong>
-                                <span style="color: #8b949e; font-size: 0.85rem; margin-left: 10px;">${b.ip}:${b.port} &bull; Configured Weight: ${b.weight}</span>
+                                <span style="color: #8b949e; font-size: 0.85rem; margin-left: 6px;">${b.ip}:${b.port}</span>
+                                ${weightBadge}
                             </div>
                             <div class="bar-container" style="height: 6px; width: 85%; margin-top: 6px;">
                                 <div class="bar-fill bar-primary" style="width: ${sharePct}%;"></div>
