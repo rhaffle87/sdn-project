@@ -1,0 +1,52 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Mininet / OVS captures and temporary logs
+*.log
+*.pcap
+*.pid
+mn_exec/
+
+# Experiment figure outputs (can be regenerated)
+figures/*.png
+figures/*.svg
+figures/*.pdf
+
+# Benchmark raw data caches
+benchmark/results/*.json
+benchmark/results/*.csv
