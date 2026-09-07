@@ -153,12 +153,24 @@ def run(start_servers=True, interactive=True):
 
     return net
 
-topos = {'diamond_lb': (lambda: DiamondLBTopo())}
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Mininet Diamond LB Topology")
     parser.add_argument('--no-servers', action='store_true', help="Do not auto-start backend servers")
     parser.add_argument('--no-cli', action='store_true', help="Do not open Mininet interactive CLI")
     args = parser.parse_args()
 
-    run(start_servers=not args.no_servers, interactive=not args.no_cli)
+    if not args.no_cli:
+        run(start_servers=not args.no_servers, interactive=True)
+    else:
+        net = run(start_servers=not args.no_servers, interactive=False)
+        info("*** Network running in daemon mode. Press Ctrl+C to terminate...\n")
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            pass
+        finally:
+            info("*** Stopping network and killing server processes...\n")
+            os.system("sudo pkill -f backend_server.py 2>/dev/null || true")
+            net.stop()
+
