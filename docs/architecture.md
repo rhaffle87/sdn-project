@@ -9,7 +9,7 @@
 This system replaces traditional hardware application delivery controllers (ADCs) by decoupling control and data planes through OpenFlow 1.3. The control plane, implemented using the **Ryu SDN Framework**, manages physical forwarding topology, dynamic load balancing, health monitoring, and traffic engineering. The data plane is executed on **Open vSwitch (OVS)** inside a Mininet-emulated network environment.
 
 ```mermaid
-graph TD
+flowchart TD
     subgraph ManagementPlane ["Management & Telemetry Plane"]
         Dashboard["Live Web Dashboard<br/>(Flask :8081)"]
         Benchmarks["Benchmarking Suite<br/>(curl / iperf3 / Scapy)"]
@@ -176,7 +176,6 @@ sequenceDiagram
     Client->>S1: IP Pkt: src=10.0.0.1, dst=10.0.0.100, tcp_dst=80 [SYN]
     S1->>Ryu: OFPT_PACKET_IN (Match: Priority 0 Table-Miss)
     Note over Ryu: Select Backend: srv2 (10.0.0.12)<br/>Select Path: Path A (s1 -> s2 -> s4)
-    
     Ryu->>S1: OFPT_FLOW_MOD (Priority 50: dst=10.0.0.100:80 -> SET dst=10.0.0.12, OUT:s2)
     Ryu->>S4: OFPT_FLOW_MOD (Priority 40: src=10.0.0.12:80 -> SET src=10.0.0.100, OUT:s2)
     Ryu->>S2: OFPT_FLOW_MOD (Priority 10: Bidirectional Transit Forwarding)
