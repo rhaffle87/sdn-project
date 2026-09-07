@@ -37,6 +37,7 @@ class HealthChecker:
             url = f"http://{ip}:{port}/health"
 
             is_alive = False
+            route_error = False
             try:
                 req = urllib.request.Request(url, headers={"User-Agent": "SDN-HealthChecker/1.0"})
                 with urllib.request.urlopen(req, timeout=1.5) as resp:
@@ -44,8 +45,15 @@ class HealthChecker:
                         body = json.loads(resp.read().decode())
                         if body.get("status") == "UP":
                             is_alive = True
+            except OSError as oe:
+                if getattr(oe, 'errno', None) == 101:  # Network is unreachable
+                    route_error = True
             except Exception:
                 is_alive = False
+
+            if route_error:
+                # Do not mark servers DOWN if host namespace has no route to Mininet
+                continue
 
             if is_alive:
                 if self.fail_counts[b_id] > 0:

@@ -68,10 +68,11 @@ class LoadBalancer:
                 self._rebuild_weighted_pool()
             backend_idx = self.weighted_pool[self.weighted_index % len(self.weighted_pool)]
             self.weighted_index = (self.weighted_index + 1) % len(self.weighted_pool)
-            backend = self.backends[backend_idx]
-            if not backend.get("healthy", True):
-                # Fallback if selected is down
-                backend = healthy[0]
+            candidate = self.backends[backend_idx]
+            if candidate in healthy:
+                backend = candidate
+            else:
+                backend = healthy[self.weighted_index % len(healthy)]
         else:
             backend = healthy[0]
 

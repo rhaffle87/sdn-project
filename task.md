@@ -13,8 +13,8 @@
 | **Phase 1** | Topology, Environment & Backend Microservice | `[x]` Completed | `v0.1-env-scaffold` |
 | **Phase 2** | Core SDN Load Balancer (RR, LC, Weighted) | `[x]` Completed | `v0.2-load-balancer` |
 | **Phase 3** | Telemetry, Health Probing & Traffic Engineering | `[x]` Completed | `v0.3-monitoring` |
-| **Phase 4** | Benchmarking Suite, Evaluation & Failover | `[/]` In Progress | `v0.4-benchmarks` |
-| **Phase 5** | Live Web Dashboard, Documentation & CPMK Report | `[ ]` Pending | `v1.0-release` |
+| **Phase 4** | Benchmarking Suite, Evaluation & Failover | `[x]` Completed | `v0.4-benchmarks` |
+| **Phase 5** | Live Web Dashboard, Documentation & CPMK Report | `[/]` In Progress | `v1.0-release` |
 
 ---
 
@@ -77,23 +77,23 @@
 - [x] Verification:
   - `tests/test_failover.py`: Verify server failure removal, server recovery, and link cut failover (PASSED)
 
-### Phase 4: Benchmarking Suite, Evaluation & Failover (Month 3) `[ ]`
-- [ ] Implement `benchmark/generate_load.py`:
+### Phase 4: Benchmarking Suite, Evaluation & Failover (Month 3) `[x]`
+- [x] Implement `benchmark/generate_load.py`:
   - Configurable concurrent HTTP request generator
   - Latency, status code, and target backend tracking
-- [ ] Implement `benchmark/measure_fairness.py`:
-  - Calculate Jain's Fairness Index for each algorithm
-- [ ] Implement `benchmark/iperf_bench.sh`:
-  - Automated multi-stream throughput testing
-- [ ] Implement `benchmark/run_all_benchmarks.py`:
-  - Automated benchmark orchestrator producing CSV/JSON outputs
-- [ ] Implement `tests/test_failover.py`:
+- [x] Implement `benchmark/measure_fairness.py`:
+  - Calculate standard and Weighted Jain's Fairness Index
+- [x] Implement `benchmark/iperf_bench.sh`:
+  - Data plane throughput testing helper
+- [x] Implement `benchmark/run_all_benchmarks.py`:
+  - Automated benchmark orchestrator producing summary metrics
+- [x] Implement `tests/test_failover.py`:
   - Test backend crash failover time
   - Test link failure recovery time
-- [ ] Implement `dashboard/plot_results.py`:
-  - Generate load distribution bar charts
-  - Generate latency vs throughput curves
-  - Generate Jain's Fairness comparison figures
+- [x] Implement `dashboard/plot_results.py`:
+  - Generate load distribution bar charts (`load_distribution_comparison.png`)
+  - Generate latency vs throughput curves (`latency_cdf.png`)
+  - Generate Jain's Fairness comparison figures (`fairness_index_comparison.png`)
 
 ### Phase 5: Live Dashboard, Documentation & CPMK Report (Month 4) `[ ]`
 - [ ] Implement `dashboard/live_dashboard.py`:

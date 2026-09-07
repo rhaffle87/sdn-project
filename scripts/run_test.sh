@@ -15,7 +15,7 @@ cd "$PROJECT_DIR"
 
 # 2. Start Ryu controller in background
 echo "[*] Starting Ryu controller (OpenFlow 1.3 on port 6653)..."
-/home/rafli_alif/sdn-venv/bin/ryu-manager controller/main.py --ofp-tcp-listen-port 6653 > /tmp/ryu.log 2>&1 &
+/home/rafli_alif/sdn-venv/bin/ryu-manager controller/main.py --ofp-tcp-listen-port 6653 > "$PROJECT_DIR/ryu.log" 2>&1 &
 RYU_PID=$!
 
 # Wait for controller port 6653 to be ready
@@ -45,8 +45,8 @@ sudo kill -9 "$RYU_PID" 2>/dev/null || true
 ./scripts/cleanup.sh
 
 if [ $EXIT_CODE -ne 0 ]; then
-    echo "[-] Test failed! Dumping controller log (/tmp/ryu.log):"
-    cat /tmp/ryu.log
+    echo "[-] Test failed! Dumping controller log ($PROJECT_DIR/ryu.log):"
+    cat "$PROJECT_DIR/ryu.log"
 fi
 
 exit $EXIT_CODE
