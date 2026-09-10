@@ -79,6 +79,35 @@ class SDNLoadBalancerApp(app_manager.RyuApp):
         # 2. Register with topology tracker
         self.topo.register_switch(datapath)
         self.mac_to_port.setdefault(datapath.id, {})
+
+        # 3. Dedicated Management / Health Check bypass flows (Priority 100) & host MAC pre-population
+        if datapath.id == config.DPID_S4:
+            for b in config.BACKEND_POOL:
+                self.mac_to_port[config.DPID_S4][b["mac"]] = b["s4_port"]
+                # Forward: Host management IP (10.0.0.254) -> Backend IP
+                m_fwd = parser.OFPMatch(
+                    eth_type=0x0800,
+                    ip_proto=6,
+                    ipv4_src="10.0.0.254",
+                    ipv4_dst=b["ip"]
+                )
+                a_fwd = [parser.OFPActionOutput(b["s4_port"])]
+                add_flow(datapath, config.PRIO_HEALTH_BYPASS, m_fwd, a_fwd)
+
+                # Reverse: Backend IP -> Host management IP (10.0.0.254)
+                m_rev = parser.OFPMatch(
+                    eth_type=0x0800,
+                    ip_proto=6,
+                    ipv4_src=b["ip"],
+                    ipv4_dst="10.0.0.254"
+                )
+                a_rev = [parser.OFPActionOutput(ofproto.OFPP_LOCAL)]
+                add_flow(datapath, config.PRIO_HEALTH_BYPASS, m_rev, a_rev)
+
+        elif datapath.id == config.DPID_S1:
+            for client_ip, cinfo in config.CLIENT_POOL.items():
+                self.mac_to_port[config.DPID_S1][cinfo["mac"]] = cinfo["s1_port"]
+
         self.logger.info("[OFP] Switch connected and Table-Miss installed: DPID 0x%016x", datapath.id)
 
     @set_ev_cls(ofp_event.EventOFPPortStatus, MAIN_DISPATCHER)

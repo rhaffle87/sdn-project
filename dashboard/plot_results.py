@@ -130,9 +130,9 @@ def plot_fairness_comparison(summary_data, out_path):
     ax.set_title("Jain's Fairness Index Across Load Balancing Algorithms", pad=15, fontweight='bold')
     ax.set_xticks(x)
     ax.set_xticklabels(labels)
-    ax.set_ylim(0, 1.15)
+    ax.set_ylim(0, 1.25)
     ax.axhline(1.0, color='red', linestyle=':', linewidth=1.2, label='Ideal Fairness (1.0000)')
-    ax.legend(loc='upper right', frameon=True)
+    ax.legend(loc='lower right', frameon=True, facecolor='white', framealpha=0.95)
 
     plt.tight_layout()
     plt.savefig(out_path, dpi=300)

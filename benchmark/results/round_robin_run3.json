@@ -1,0 +1,192 @@
+{
+  "total_requests": 24,
+  "successful_requests": 23,
+  "failed_requests": 1,
+  "success_rate_pct": 95.83,
+  "total_duration_sec": 0.76,
+  "throughput_rps": 30.25,
+  "latency_ms": {
+    "min": 35.1,
+    "avg": 45.95,
+    "median": 41.33,
+    "p95": 75.42,
+    "p99": 91.33,
+    "max": 95.55
+  },
+  "distribution": {
+    "srv1": 6,
+    "srv3": 6,
+    "srv4": 5,
+    "srv2": 6
+  },
+  "records": [
+    {
+      "success": true,
+      "latency_ms": 43.62,
+      "server_id": "srv1",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 41.33,
+      "server_id": "srv3",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 35.75,
+      "server_id": "srv4",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 42.47,
+      "server_id": "srv2",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 35.44,
+      "server_id": "srv3",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 49.65,
+      "server_id": "srv3",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 76.35,
+      "server_id": "srv3",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 51.34,
+      "server_id": "srv4",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 67.02,
+      "server_id": "srv4",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 41.54,
+      "server_id": "srv1",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 57.3,
+      "server_id": "srv2",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 43.21,
+      "server_id": "srv1",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 43.06,
+      "server_id": "srv1",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 36.3,
+      "server_id": "srv4",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 35.64,
+      "server_id": "srv2",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 35.1,
+      "server_id": "srv3",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 37.47,
+      "server_id": "srv2",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 36.62,
+      "server_id": "srv1",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": false,
+      "latency_ms": 108.06,
+      "server_id": "unknown",
+      "status_code": 0,
+      "error": "[Errno 104] Connection reset by peer"
+    },
+    {
+      "success": true,
+      "latency_ms": 40.72,
+      "server_id": "srv1",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 36.44,
+      "server_id": "srv4",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 38.77,
+      "server_id": "srv2",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 95.55,
+      "server_id": "srv3",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 36.23,
+      "server_id": "srv2",
+      "status_code": 200,
+      "error": null
+    }
+  ]
+}

@@ -77,16 +77,125 @@ A value of $1.0000$ represents mathematically perfect equity according to capaci
 
 ## 3. System Architecture & Design
 
-### 3.1 Network Topology
-The system is modeled as a 4-switch diamond multi-path topology inside Mininet:
+### 3.1 3-Tier SDN Architectural Overview
+The architecture is structured across three decoupled planes conforming to the ONF SDN framework:
+
+```mermaid
+flowchart TD
+    subgraph ManagementPlane ["Management & Telemetry Plane"]
+        Dashboard["Live Web Dashboard<br/>(Flask :8081)"]
+        Benchmarks["Benchmarking Suite<br/>(generate_load.py / iperf3)"]
+        REST["Ryu WSGI REST API<br/>(:8080/api)"]
+    end
+
+    subgraph ControlPlane ["Ryu SDN Controller (OpenFlow 1.3)"]
+        MainApp["Main Controller App<br/>(main.py)"]
+        FlowMgr["Flow Manager<br/>(flow_manager.py)"]
+        LB["Load Balancer Engine<br/>(load_balancer.py)"]
+        TopoDisc["Topology Discovery<br/>(topology_discovery.py)"]
+        StatsMon["Stats Monitor<br/>(stats_monitor.py)"]
+        HealthCheck["Health Checker<br/>(health_checker.py)"]
+        TrafficEng["Traffic Engineer<br/>(traffic_engineer.py)"]
+
+        MainApp --> FlowMgr
+        MainApp --> LB
+        MainApp --> TopoDisc
+        MainApp --> StatsMon
+        MainApp --> HealthCheck
+        MainApp --> TrafficEng
+    end
+
+    subgraph DataPlane ["Data Plane (Open vSwitch / Mininet)"]
+        subgraph Clients ["Client Subnet"]
+            H1["Client h1<br/>10.0.0.1"]
+            H2["Client h2<br/>10.0.0.2"]
+        end
+
+        S1["Ingress Switch (s1)<br/>dpid: 1"]
+        S2["Transit Path A (s2)<br/>dpid: 2 (Primary, 10 Mbps)"]
+        S3["Transit Path B (s3)<br/>dpid: 3 (Alternate, 10 Mbps)"]
+        S4["Egress Switch (s4)<br/>dpid: 4"]
+
+        subgraph Backends ["Backend Server Farm"]
+            Srv1["srv1 (10.0.0.11)<br/>Weight: 1"]
+            Srv2["srv2 (10.0.0.12)<br/>Weight: 2"]
+            Srv3["srv3 (10.0.0.13)<br/>Weight: 1"]
+            Srv4["srv4 (10.0.0.14)<br/>Weight: 2"]
+        end
+
+        MgmtPort["Host Mgmt IP<br/>10.0.0.254 (OFPP_LOCAL)"]
+    end
+
+    Dashboard -->|HTTP REST| REST
+    Benchmarks -->|HTTP Traffic| H1
+    Benchmarks -->|HTTP Traffic| H2
+    REST --> MainApp
+
+    ControlPlane <==|OpenFlow 1.3 (TCP 6653)|==> S1
+    ControlPlane <==|OpenFlow 1.3 (TCP 6653)|==> S2
+    ControlPlane <==|OpenFlow 1.3 (TCP 6653)|==> S3
+    ControlPlane <==|OpenFlow 1.3 (TCP 6653)|==> S4
+
+    H1 --- S1
+    H2 --- S1
+    S1 ---|Port 3 / 10 Mbps, 2ms| S2
+    S1 ---|Port 4 / 10 Mbps, 2ms| S3
+    S2 ---|Port 2 / 10 Mbps, 2ms| S4
+    S3 ---|Port 2 / 10 Mbps, 2ms| S4
+    S4 --- Srv1
+    S4 --- Srv2
+    S4 --- Srv3
+    S4 --- Srv4
+    MgmtPort -.->|Priority 100 Bypass| S4
+```
+
+### 3.2 Network Topology & Diamond Mesh
+The data plane is modeled as a 4-switch diamond multi-path topology inside Mininet:
 - **Ingress Switch (`s1`):** Connects client nodes `h1` (`10.0.0.1`) and `h2` (`10.0.0.2`).
 - **Transit Switches (`s2`, `s3`):** Provide redundant paths between ingress and egress.
-  - **Path A (Primary):** $s1 \leftrightarrow s2 \leftrightarrow s4$.
-  - **Path B (Alternate):** $s1 \leftrightarrow s3 \leftrightarrow s4$.
-- **Egress Switch (`s4`):** Connects the backend server farm (`srv1` to `srv4`) and hosts the controller management gateway (`10.0.0.254/24`).
-- **Link Constraints:** All inter-switch links are modeled with `TCLink` at 10 Mbps bandwidth and 2 ms propagation delay.
+  - **Path A (Primary):** $s1 \leftrightarrow s2 \leftrightarrow s4$ (10 Mbps, 2 ms delay).
+  - **Path B (Alternate):** $s1 \leftrightarrow s3 \leftrightarrow s4$ (10 Mbps, 2 ms delay).
+- **Egress Switch (`s4`):** Connects the backend server farm (`srv1` to `srv4`) and hosts the controller management gateway (`10.0.0.254/24` on `OFPP_LOCAL`).
+- **Link Constraints:** Inter-switch transit links are conditioned with `TCLink` at 10 Mbps bandwidth and 2 ms delay, while access links operate at 20 Mbps with 1 ms delay.
 
-### 3.2 Flow Table Pipeline and Priority Hierarchy
+### 3.3 OpenFlow 1.3 Symmetrical NAT Packet Pipeline
+The diagram below illustrates the exact sequence of OpenFlow 1.3 control-data plane interactions during a client request to the Virtual IP:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client as Client h1 (10.0.0.1)
+    participant S1 as Ingress Switch (s1)
+    participant Ctrl as Ryu Controller
+    participant S2 as Transit Switch (s2)
+    participant S4 as Egress Switch (s4)
+    actor Backend as Backend srv2 (10.0.0.12)
+
+    Client->>S1: 1. ARP Request (Who has 10.0.0.100?)
+    S1->>Ctrl: 2. Packet-In (ARP Request)
+    Ctrl-->>S1: 3. Packet-Out (Proxy ARP: 10.0.0.100 -> 00:00:00:00:00:fe)
+    S1-->>Client: 4. ARP Reply (Virtual MAC 00:00:00:00:00:fe)
+
+    Client->>S1: 5. TCP SYN (dst: 10.0.0.100:80)
+    S1->>Ctrl: 6. Packet-In (Table-Miss, Priority 0)
+    Note over Ctrl: LB Algorithm selects srv2<br/>Path A (s1-s2-s4) chosen
+    Ctrl->>S1: 7. Flow-Mod (Prio 50: Fwd NAT dst->10.0.0.12)<br/>Flow-Mod (Prio 40: Rev NAT src->10.0.0.100)
+    Ctrl->>S2: 8. Flow-Mod (Prio 50 & 40 Transit Forwarding)
+    Ctrl->>S4: 9. Flow-Mod (Prio 50 & 40 Egress Forwarding)
+    Ctrl->>S1: 10. Packet-Out (Forward rewritten SYN to s2)
+    S1->>S2: 11. TCP SYN (dst: 10.0.0.12:80)
+    S2->>S4: 12. TCP SYN (dst: 10.0.0.12:80)
+    S4->>Backend: 13. TCP SYN (Delivered to srv2)
+    Backend->>S4: 14. TCP SYN-ACK (src: 10.0.0.12:80)
+    S4->>S2: 15. TCP SYN-ACK (OVS Fast-Path Match Prio 40)
+    S2->>S1: 16. TCP SYN-ACK (OVS Fast-Path Match Prio 40)
+    Note over S1: Priority 40 Action executes:<br/>SET_FIELD(ipv4_src=10.0.0.100)<br/>SET_FIELD(eth_src=00:00:00:00:00:fe)
+    S1->>Client: 17. TCP SYN-ACK (src: 10.0.0.100:80)
+    Client->>S1: 18. TCP ACK (3-Way Handshake Established)
+    Note over Client,Backend: All subsequent stream packets match Flow Table 0 in hardware kernel space at wire speed!
+```
+
+### 3.4 Flow Table Pipeline and Priority Hierarchy
 To prevent rule collisions, the flow table enforces strict priority ordering:
 - **Priority 100 (Health Check Bypass):** Unmodified traffic to backend real IPs for monitoring.
 - **Priority 50 (Forward NAT):** Rewrites `dst_ip=VIP` to `dst_ip=srv_ip` (`idle=15s, hard=60s`).
@@ -122,23 +231,29 @@ Backend servers are implemented as Python Flask microservices (`server/backend_s
 ## 5. Experimental Results and Analysis
 
 ### 5.1 Load Balancing Benchmark Results
-Benchmarking was conducted with 24 concurrent client requests dispatched from `h1` across the VIP:
+Systematic benchmarking was conducted across 3 full iterations (72 requests total per algorithm) with concurrent client threads ($C=4$) dispatched from `h1` across the Virtual IP (`10.0.0.100`) over 10 Mbps bottleneck links:
 
-| Metric | Round-Robin (RR) | Least-Connections (LC) | Weighted Round-Robin (WRR) |
-|---|---|---|---|
-| **Total Requests** | 24 | 24 | 24 |
-| **Successful Requests** | 24 (100%) | 24 (100%) | 24 (100%) |
-| **Server Distribution `[srv1, srv2, srv3, srv4]`** | `[6, 6, 6, 6]` | `[6, 6, 6, 6]` | `[4, 8, 4, 8]` |
-| **Target Distribution Ratio** | 1 : 1 : 1 : 1 | 1 : 1 : 1 : 1 | 1 : 2 : 1 : 2 |
-| **Standard JFI ($\mathcal{J}$)** | **1.0000** | **1.0000** | 0.9000 |
-| **Weighted JFI ($\mathcal{J}_w$)** | 0.9000 | 0.9000 | **1.0000** |
-| **Average Latency** | 276.58 ms | **269.71 ms** | 438.99 ms |
-| **Throughput (Requests/sec)** | **13.13 RPS** | 12.99 RPS | 8.56 RPS |
+| Performance Metric | Round-Robin (RR) | Least-Connections (LC) | Weighted (WRR 1:2:1:2) |
+|---|:---:|:---:|:---:|
+| **Total Processed Requests** | 72 (3 runs $\times$ 24) | 72 (3 runs $\times$ 24) | 72 (3 runs $\times$ 24) |
+| **Successful Requests** | 71/72 (98.6%) | **72/72 (100.0%)** | **72/72 (100.0%)** |
+| **Server Distribution `[srv1, srv2, srv3, srv4]`** | `[18, 18, 18, 17]` | **`[18, 18, 18, 18]`** | **`[12, 24, 12, 24]`** |
+| **Percentage Distribution** | 25.4% : 25.4% : 25.4% : 23.9% | **25.0% : 25.0% : 25.0% : 25.0%** | **16.7% : 33.3% : 16.7% : 33.3%** |
+| **Standard JFI ($\mathcal{J}$)** | `0.9994` | **`1.0000`** | `0.9000` |
+| **Weighted JFI ($\mathcal{J}_w$)** | `0.9000` | `0.9000` | **`1.0000`** |
+| **Throughput (Requests/sec)** | 27.55 RPS | 28.37 RPS | **28.73 RPS** |
+| **Minimum Latency** | **29.52 ms** | 31.78 ms | 35.98 ms |
+| **Average Latency** | 61.12 ms | **51.16 ms** | 51.77 ms |
+| **Median ($P_{50}$) Latency** | **36.62 ms** | 36.75 ms | 41.82 ms |
+| **90th Percentile ($P_{90}$)** | 76.35 ms | **56.29 ms** | 79.88 ms |
+| **95th Percentile ($P_{95}$)** | 133.76 ms | **68.80 ms** | 91.78 ms |
+| **99th Percentile ($P_{99}$)** | 440.49 ms | 334.33 ms | **132.08 ms** |
+| **Maximum Latency** | 1042.50 ms | 355.63 ms | **156.38 ms** |
 
 #### Result Analysis:
-- Both Round-Robin and Least-Connections achieved absolute theoretical fairness ($\mathcal{J} = 1.0000$), dividing requests identically across all 4 backends.
-- Weighted Round-Robin allocated requests precisely according to assigned weights ($4:8:4:8$), achieving a Weighted Fairness Index of $\mathcal{J}_w = 1.0000$.
-- Least-Connections yielded the best response latency (269.71 ms), as it proactively avoided queuing on any single backend instance.
+- **Optimal Fairness:** Least-Connections achieved absolute theoretical fairness ($\mathcal{J} = 1.0000$), dividing requests with mathematical uniformity ($18:18:18:18$) across all 4 backends. Round-Robin achieved near-perfect equity ($\mathcal{J} = 0.9994$).
+- **Capacity Proportionality:** Weighted Round-Robin allocated requests precisely conforming to assigned weights ($12:24:12:24$), achieving an ideal Weighted Fairness Index of $\mathcal{J}_w = 1.0000$.
+- **Tail Latency Mitigation:** Weighted Round-Robin yielded the tightest 99th percentile response latency ($P_{99} = 132.08\text{ ms}$ vs $440.49\text{ ms}$ on RR) and highest overall throughput ($28.73\text{ RPS}$), as 66.7% of requests were absorbed by higher-capacity backend instances. Least-Connections achieved the lowest average latency ($51.16\text{ ms}$) and tightest 95th percentile ($68.80\text{ ms}$).
 
 ### 5.2 Fault Tolerance and High Availability
 The resilience of the system was validated through automated tests (`tests/test_failover.py`):

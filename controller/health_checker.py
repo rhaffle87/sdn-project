@@ -40,14 +40,18 @@ class HealthChecker:
             route_error = False
             try:
                 req = urllib.request.Request(url, headers={"User-Agent": "SDN-HealthChecker/1.0"})
-                with urllib.request.urlopen(req, timeout=1.5) as resp:
+                with urllib.request.urlopen(req, timeout=3.0) as resp:
                     if resp.status == 200:
                         body = json.loads(resp.read().decode())
                         if body.get("status") == "UP":
                             is_alive = True
             except OSError as oe:
-                if getattr(oe, 'errno', None) == 101:  # Network is unreachable
+                if getattr(oe, 'errno', None) in (101, 113):  # Network unreachable or No route to host
                     route_error = True
+            except urllib.error.URLError as ue:
+                if hasattr(ue, 'reason') and isinstance(ue.reason, OSError):
+                    if getattr(ue.reason, 'errno', None) in (101, 113):
+                        route_error = True
             except Exception:
                 is_alive = False
 

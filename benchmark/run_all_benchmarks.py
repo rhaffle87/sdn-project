@@ -105,17 +105,35 @@ def run_all_benchmarks():
             agg_dist = {}
             agg_rps = 0.0
             agg_lat = 0.0
+            all_records = []
             for run_data in iteration_results:
                 d = run_data.get("distribution", {})
                 for srv, cnt in d.items():
                     agg_dist[srv] = agg_dist.get(srv, 0) + cnt
                 agg_rps += run_data.get("throughput_rps", 0.0)
                 agg_lat += run_data.get("latency_ms", {}).get("avg", 0.0)
+                all_records.extend(run_data.get("records", []))
 
             n_runs = len(iteration_results)
             avg_dist = {srv: cnt / n_runs for srv, cnt in agg_dist.items()}
             avg_rps = agg_rps / n_runs
             avg_lat = agg_lat / n_runs
+
+            # Compute latency percentiles across all aggregated records
+            all_lats = [r["latency_ms"] for r in all_records if r.get("success", False)]
+            if all_lats:
+                import numpy as np
+                lat_stats = {
+                    "min": round(float(np.min(all_lats)), 2),
+                    "avg": round(float(np.mean(all_lats)), 2),
+                    "median": round(float(np.median(all_lats)), 2),
+                    "p90": round(float(np.percentile(all_lats, 90)), 2),
+                    "p95": round(float(np.percentile(all_lats, 95)), 2),
+                    "p99": round(float(np.percentile(all_lats, 99)), 2),
+                    "max": round(float(np.max(all_lats)), 2),
+                }
+            else:
+                lat_stats = {"avg": round(avg_lat, 2)}
 
             # Compute Jain's Fairness Index from aggregated distribution
             counts = [agg_dist.get(s, 0) for s in ["srv1", "srv2", "srv3", "srv4"]]
@@ -129,10 +147,10 @@ def run_all_benchmarks():
                 "distribution": agg_dist,
                 "avg_distribution_per_run": avg_dist,
                 "throughput_rps": round(avg_rps, 2),
-                "latency_ms": {"avg": round(avg_lat, 2)},
+                "latency_ms": lat_stats,
                 "jains_fairness": jfi,
                 "iterations": BENCHMARK_ITERATIONS,
-                "records": iteration_results[-1].get("records", [])  # Keep last run's raw records
+                "records": all_records
             }
 
             # Save aggregated result as the canonical per-algorithm file
@@ -153,16 +171,16 @@ def run_all_benchmarks():
         generate_all_plots(SUMMARY_JSON_PATH)
 
         # Print comparative summary table
-        print("\n=========================================================================")
-        print(f"{'Algorithm':<20} | {'Throughput (rps)':<16} | {'Avg Latency (ms)':<16} | {'JFI':<8}")
-        print("---------------------+------------------+------------------+---------")
+        print("\n===================================================================================================")
+        print(f"{'Algorithm':<20} | {'Throughput (rps)':<16} | {'Avg (ms)':<10} | {'P50 (ms)':<10} | {'P95 (ms)':<10} | {'P99 (ms)':<10} | {'JFI':<8}")
+        print("---------------------+------------------+------------+------------+------------+------------+---------")
         for algo_key, algo_name in algorithms:
             m = summary_metrics[algo_key]
             rps = m["throughput_rps"]
-            avg_lat = m["latency_ms"]["avg"]
+            l = m["latency_ms"]
             jfi = m["jains_fairness"]
-            print(f"{algo_name:<20} | {rps:<16.2f} | {avg_lat:<16.2f} | {jfi:<8.4f}")
-        print("=========================================================================\n")
+            print(f"{algo_name:<20} | {rps:<16.2f} | {l.get('avg', 0):<10.2f} | {l.get('median', 0):<10.2f} | {l.get('p95', 0):<10.2f} | {l.get('p99', 0):<10.2f} | {jfi:<8.4f}")
+        print("===================================================================================================\n")
         return True
 
     except Exception as e:
