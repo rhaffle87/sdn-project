@@ -41,12 +41,3 @@ env/
 *.pcap
 *.pid
 mn_exec/
-
-# Experiment figure outputs (can be regenerated)
-figures/*.png
-figures/*.svg
-figures/*.pdf
-
-# Benchmark raw data caches
-benchmark/results/*.json
-benchmark/results/*.csv
