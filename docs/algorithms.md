@@ -209,8 +209,8 @@ The algorithms were benchmarked systematically inside the Mininet environment ac
 
 ### 7.1 Multi-Path Topology Model
 The data plane features a diamond topology with two redundant transit paths connecting Ingress Switch ($s1$) and Egress Switch ($s4$):
-- **Path A (Primary):** $s1 \xrightarrow{\text{port 3}} s2 \xrightarrow{\text{port 2}} s4$
-- **Path B (Alternate):** $s1 \xrightarrow{\text{port 4}} s3 \xrightarrow{\text{port 2}} s4$
+- **Path A (Primary):** $s1 \xrightarrow{\text{port(3)}} s2 \xrightarrow{\text{port(2)}} s4$
+- **Path B (Alternate):** $s1 \xrightarrow{\text{port(4)}} s3 \xrightarrow{\text{port (2)}} s4$
 
 Each transit link is constrained to a bandwidth capacity of $C = 10\text{ Mbps}$ with $2\text{ ms}$ delay.
 
@@ -229,18 +229,16 @@ $$\text{Current Utilization } U = \frac{\Delta B_{\text{tx}} \times 8}{T \times 
   $$\text{TrafficEngineer} \implies \text{Restore Primary Path A}$$
   Forwarding preference reverts to port 3 ($s2$) only after utilization stays below 50% for two consecutive polling cycles, eliminating high-frequency route flapping.
 
-```
-       Path A Load >= 80%
-   ┌────────────────────────┐
-   │                        ▼
-┌──────────────┐       ┌──────────────┐
-│    PATH A    │       │    PATH B    │
-│  (Primary)   │       │ (Alternate)  │
-└──────────────┘       └──────────────┘
-   ▲                        │
-   └────────────────────────┘
-       Path A Load < 50%
-     (for 2 consecutive cycles)
+```mermaid
+flowchart LR
+    PathA["PATH A (Primary)<br/>s1 ➔ s2 ➔ s4"]
+    PathB["PATH B (Alternate)<br/>s1 ➔ s3 ➔ s4"]
+
+    PathA -->|"Path A Load ≥ 80%<br/>(Congestion Trigger)"| PathB
+    PathB -->|"Path A Load < 50%<br/>(2 Consecutive Cycles)"| PathA
+
+    style PathA fill:#0d2040,stroke:#38bdf8,stroke-width:2px,color:#e2e8f0
+    style PathB fill:#1a1040,stroke:#818cf8,stroke-width:2px,color:#e2e8f0
 ```
 
 ### 7.3 Link Failure Detection & Sub-Second Recovery
