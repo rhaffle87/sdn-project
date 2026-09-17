@@ -183,8 +183,12 @@ flowchart LR
 
 ### Step 6: Real-Time Telemetry & Adaptive Traffic Engineering
 - **Code:** [`controller/stats_monitor.py`](controller/stats_monitor.py), [`controller/traffic_engineer.py`](controller/traffic_engineer.py) | **CPMK:** CPMK-4
-- **Mechanism:** Ryu polls port statistics every 5 seconds via `OFPPortStatsRequest`. Throughput is calculated using delta byte counters:
-  $$\text{Throughput (bps)} = \frac{(B_t - B_{t-\Delta t}) \times 8}{\Delta t}, \quad \text{Utilization (\%)} = \frac{\text{Throughput}}{10\text{ Mbps}} \times 100$$
+- **Mechanism:** Ryu polls port statistics every 5 seconds via `OFPPortStatsRequest`. Throughput and link utilization are calculated using delta byte counters:
+
+  $$\text{Throughput (bps)} = \frac{(B_t - B_{t-\Delta t}) \times 8}{\Delta t}$$
+
+  $$\text{Utilization} = \frac{\text{Throughput}}{10\text{ Mbps}} \times 100$$
+
   - When Path A (Primary Transit) exceeds 80% link utilization, new TCP sessions are automatically routed across Path B (Alternate Transit via `s3`).
 - **Reasoning & Rationale:** Replaces static equal-cost multi-path hashing (which suffers from hash collisions and elephant flow congestion) with dynamic telemetry-driven path steering.
 - **Edge Case Prevention:**

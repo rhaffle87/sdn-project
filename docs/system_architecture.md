@@ -220,7 +220,7 @@ flowchart LR
   - Switches reply with cumulative `tx_bytes` and `rx_bytes` per port via `EventOFPPortStatsReply`.
   - Delta throughput is computed:
     $$\text{Throughput (bps)} = \frac{(B_t - B_{t-\Delta t}) \times 8}{\Delta t}$$
-    $$\text{Utilization (\%)} = \frac{\text{Throughput}}{\text{Capacity (10 Mbps)}} \times 100$$
+    $$\text{Utilization} = \frac{\text{Throughput}}{\text{Capacity (10 Mbps)}} \times 100$$
 - **Rerouting Decision Logic:**
   - Threshold: $U_{thresh} = 80\%$ (8.0 Mbps on a 10 Mbps link).
   - If Path A utilization exceeds 80%, `TrafficEngineer` switches `preferred_path` from `path_a` to `path_b`.
