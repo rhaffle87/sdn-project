@@ -41,3 +41,4 @@ env/
 *.pcap
 *.pid
 mn_exec/
+scratch/
