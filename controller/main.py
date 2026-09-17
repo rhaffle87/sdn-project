@@ -83,6 +83,9 @@ class SDNLoadBalancerApp(app_manager.RyuApp):
         # 3. Dedicated Management / Health Check bypass flows (Priority 100) & host MAC pre-population
         if datapath.id == config.DPID_S4:
             for b in config.BACKEND_POOL:
+                self.health.fail_counts[b["id"]] = 0
+                if self.health.manual_overrides.get(b["id"]) is not False:
+                    self.lb.update_health_status(b["id"], True)
                 self.mac_to_port[config.DPID_S4][b["mac"]] = b["s4_port"]
                 # Forward: Host management IP (10.0.0.254) -> Backend IP
                 m_fwd = parser.OFPMatch(

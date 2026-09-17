@@ -80,6 +80,8 @@ class DiamondLBTopo(Topo):
 def start_backend_servers(net, project_root):
     """Launch Flask backend microservice on each backend host."""
     # Configure management interface on root namespace so controller can probe backends
+    os.system("sudo ovs-vsctl set bridge s4 other-config:hwaddr=00:00:00:00:00:ff 2>/dev/null || true")
+    os.system("sudo ip link set dev s4 address 00:00:00:00:00:ff 2>/dev/null || true")
     os.system("sudo ip addr add 10.0.0.254/24 dev s4 2>/dev/null || true")
     os.system("sudo ip link set s4 up 2>/dev/null || true")
 
@@ -131,6 +133,8 @@ def run(start_servers=True, interactive=True):
     info("*** Network started.\n")
 
     # Configure management interface on root namespace so controller can probe backends
+    os.system("sudo ovs-vsctl set bridge s4 other-config:hwaddr=00:00:00:00:00:ff 2>/dev/null || true")
+    os.system("sudo ip link set dev s4 address 00:00:00:00:00:ff 2>/dev/null || true")
     os.system("sudo ip addr add 10.0.0.254/24 dev s4 2>/dev/null || true")
     os.system("sudo ip link set s4 up 2>/dev/null || true")
 

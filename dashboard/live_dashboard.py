@@ -1125,12 +1125,14 @@ def get_data():
         try:
             with urllib.request.urlopen(f"{RYU_REST_BASE}/stats", timeout=2) as r:
                 stats = json.loads(r.read().decode())
+                tot_req = stats.get("total_requests", {})
                 combined.update({
                     "algorithm": stats.get("algorithm", combined["algorithm"]),
                     "preferred_path": stats.get("preferred_path", combined["preferred_path"]),
                     "backends": stats.get("backends", []),
-                    "total_requests": stats.get("total_requests", {}),
+                    "total_requests": tot_req,
                     "active_connections": stats.get("active_connections", {}),
+                    "total_dispatched": sum(tot_req.values()) if tot_req else combined["total_dispatched"],
                 })
         except Exception:
             pass
@@ -1218,27 +1220,40 @@ def generate_traffic():
     count = max(1, min(50, int(payload.get("count", 4))))
     if _ryu_available():
         try:
-            out = subprocess.check_output(["pgrep", "-f", "mininet:h1"]).decode().strip().split()
+            cmd_prefix = ["wsl", "-e"] if os.name == "nt" else []
+            out = subprocess.check_output(cmd_prefix + ["pgrep", "-f", "mininet:h1"]).decode().strip().split()
             if out:
                 h1_pid = out[0]
                 snip = (
-                    "import urllib.request,json\nresults=[]\n"
+                    "import urllib.request,json,time\n"
+                    "results=[]\nlats=[]\n"
                     f"for _ in range({count}):\n"
-                    " try:\n"
-                    "  with urllib.request.urlopen('http://10.0.0.100/',timeout=2) as r:\n"
-                    "   d=json.loads(r.read().decode())\n"
-                    "   results.append(d.get('server_id','unknown'))\n"
-                    " except: results.append('error')\n"
-                    "print(json.dumps(results))\n"
+                    "    t0=time.time()\n"
+                    "    try:\n"
+                    "        with urllib.request.urlopen('http://10.0.0.100/',timeout=2) as r:\n"
+                    "            d=json.loads(r.read().decode())\n"
+                    "            results.append(d.get('server_id','unknown'))\n"
+                    "            lats.append(round((time.time()-t0)*1000, 2))\n"
+                    "    except Exception:\n"
+                    "        results.append('error')\n"
+                    "print(json.dumps({'servers': results, 'latencies': lats}))\n"
                 )
                 raw = subprocess.check_output(
-                    ["sudo", "mnexec", "-a", h1_pid, "python3", "-c", snip], timeout=12
+                    cmd_prefix + ["sudo", "mnexec", "-a", h1_pid, "python3", "-c", snip],
+                    timeout=15
                 ).decode().strip()
-                servers = json.loads(raw)
+                res_obj = json.loads(raw)
+                servers = res_obj.get("servers", [])
+                lats = res_obj.get("latencies", [])
+                if lats:
+                    with _sim_lock:
+                        _sim["latencies"].extend(lats)
+                        if len(_sim["latencies"]) > 200:
+                            _sim["latencies"] = _sim["latencies"][-200:]
                 bd = dict(collections.Counter(servers))
                 return jsonify({"status": "success", "count": count, "servers": servers, "breakdown": bd})
-        except Exception:
-            pass
+        except Exception as ex:
+            logging.warning("Live traffic generation via mininet failed: %s", ex)
     servers = _sim_dispatch(count)
     bd = dict(collections.Counter(servers))
     return jsonify({"status": "success", "count": count, "servers": servers, "breakdown": bd})

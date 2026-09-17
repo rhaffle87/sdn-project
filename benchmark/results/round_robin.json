@@ -1,530 +1,530 @@
 {
   "distribution": {
     "srv1": 18,
-    "srv4": 17,
-    "srv2": 18,
-    "srv3": 18
+    "srv4": 18,
+    "srv3": 18,
+    "srv2": 18
   },
   "avg_distribution_per_run": {
     "srv1": 6.0,
-    "srv4": 5.666666666666667,
-    "srv2": 6.0,
-    "srv3": 6.0
+    "srv4": 6.0,
+    "srv3": 6.0,
+    "srv2": 6.0
   },
-  "throughput_rps": 27.55,
+  "throughput_rps": 32.13,
   "latency_ms": {
-    "min": 29.52,
-    "avg": 61.12,
-    "median": 36.62,
-    "p90": 76.35,
-    "p95": 133.76,
-    "p99": 440.49,
-    "max": 1042.5
+    "min": 30.81,
+    "avg": 34.18,
+    "median": 33.45,
+    "p90": 37.33,
+    "p95": 39.61,
+    "p99": 46.81,
+    "max": 47.04
   },
-  "jains_fairness": 0.9994,
+  "jains_fairness": 1.0,
   "iterations": 3,
   "records": [
     {
       "success": true,
-      "latency_ms": 42.32,
+      "latency_ms": 47.04,
       "server_id": "srv1",
       "status_code": 200,
       "error": null
     },
     {
       "success": true,
-      "latency_ms": 29.85,
+      "latency_ms": 33.27,
       "server_id": "srv4",
       "status_code": 200,
       "error": null
     },
     {
       "success": true,
-      "latency_ms": 30.43,
-      "server_id": "srv2",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 30.45,
+      "latency_ms": 34.57,
       "server_id": "srv3",
       "status_code": 200,
       "error": null
     },
     {
       "success": true,
-      "latency_ms": 30.14,
+      "latency_ms": 33.67,
+      "server_id": "srv2",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 35.79,
       "server_id": "srv1",
       "status_code": 200,
       "error": null
     },
     {
       "success": true,
-      "latency_ms": 37.03,
+      "latency_ms": 39.42,
       "server_id": "srv3",
       "status_code": 200,
       "error": null
     },
     {
       "success": true,
-      "latency_ms": 30.21,
-      "server_id": "srv3",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 32.85,
-      "server_id": "srv1",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 44.19,
-      "server_id": "srv1",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 29.71,
+      "latency_ms": 34.1,
       "server_id": "srv4",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 29.52,
-      "server_id": "srv3",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 29.55,
-      "server_id": "srv2",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 30.11,
-      "server_id": "srv2",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 31.42,
-      "server_id": "srv1",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 29.74,
-      "server_id": "srv1",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 32.53,
-      "server_id": "srv4",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 32.37,
-      "server_id": "srv3",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 32.25,
-      "server_id": "srv2",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 29.93,
-      "server_id": "srv4",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 30.07,
-      "server_id": "srv2",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 35.76,
-      "server_id": "srv4",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 35.43,
-      "server_id": "srv2",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 30.2,
-      "server_id": "srv3",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 30.14,
-      "server_id": "srv4",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 43.16,
-      "server_id": "srv1",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 55.05,
-      "server_id": "srv3",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 162.39,
-      "server_id": "srv4",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 149.77,
-      "server_id": "srv2",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 34.87,
-      "server_id": "srv4",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 46.98,
-      "server_id": "srv4",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 35.56,
-      "server_id": "srv1",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 51.47,
-      "server_id": "srv3",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 33.61,
-      "server_id": "srv2",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 50.1,
-      "server_id": "srv2",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 39.3,
-      "server_id": "srv1",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 53.65,
-      "server_id": "srv3",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 39.12,
-      "server_id": "srv2",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 96.36,
-      "server_id": "srv1",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 34.06,
-      "server_id": "srv1",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 33.52,
-      "server_id": "srv3",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 117.75,
-      "server_id": "srv4",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 182.48,
-      "server_id": "srv3",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 48.86,
-      "server_id": "srv2",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 39.22,
-      "server_id": "srv4",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 35.05,
-      "server_id": "srv2",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 48.14,
-      "server_id": "srv3",
       "status_code": 200,
       "error": null
     },
     {
       "success": true,
       "latency_ms": 33.57,
-      "server_id": "srv4",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 1042.5,
       "server_id": "srv1",
       "status_code": 200,
       "error": null
     },
     {
       "success": true,
-      "latency_ms": 43.62,
-      "server_id": "srv1",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 41.33,
+      "latency_ms": 34.47,
       "server_id": "srv3",
       "status_code": 200,
       "error": null
     },
     {
       "success": true,
-      "latency_ms": 35.75,
-      "server_id": "srv4",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 42.47,
+      "latency_ms": 33.3,
       "server_id": "srv2",
       "status_code": 200,
       "error": null
     },
     {
       "success": true,
-      "latency_ms": 35.44,
-      "server_id": "srv3",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 49.65,
-      "server_id": "srv3",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 76.35,
-      "server_id": "srv3",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 51.34,
-      "server_id": "srv4",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 67.02,
-      "server_id": "srv4",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 41.54,
+      "latency_ms": 34.52,
       "server_id": "srv1",
       "status_code": 200,
       "error": null
     },
     {
       "success": true,
-      "latency_ms": 57.3,
-      "server_id": "srv2",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 43.21,
-      "server_id": "srv1",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 43.06,
-      "server_id": "srv1",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 36.3,
+      "latency_ms": 33.39,
       "server_id": "srv4",
       "status_code": 200,
       "error": null
     },
     {
       "success": true,
-      "latency_ms": 35.64,
-      "server_id": "srv2",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 35.1,
+      "latency_ms": 32.49,
       "server_id": "srv3",
       "status_code": 200,
       "error": null
     },
     {
       "success": true,
-      "latency_ms": 37.47,
+      "latency_ms": 34.19,
       "server_id": "srv2",
       "status_code": 200,
       "error": null
     },
     {
       "success": true,
-      "latency_ms": 36.62,
-      "server_id": "srv1",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": false,
-      "latency_ms": 108.06,
-      "server_id": "unknown",
-      "status_code": 0,
-      "error": "[Errno 104] Connection reset by peer"
-    },
-    {
-      "success": true,
-      "latency_ms": 40.72,
+      "latency_ms": 34.51,
       "server_id": "srv1",
       "status_code": 200,
       "error": null
     },
     {
       "success": true,
-      "latency_ms": 36.44,
+      "latency_ms": 34.98,
       "server_id": "srv4",
       "status_code": 200,
       "error": null
     },
     {
       "success": true,
-      "latency_ms": 38.77,
-      "server_id": "srv2",
-      "status_code": 200,
-      "error": null
-    },
-    {
-      "success": true,
-      "latency_ms": 95.55,
+      "latency_ms": 33.28,
       "server_id": "srv3",
       "status_code": 200,
       "error": null
     },
     {
       "success": true,
-      "latency_ms": 36.23,
+      "latency_ms": 33.15,
       "server_id": "srv2",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 37.4,
+      "server_id": "srv4",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 38.93,
+      "server_id": "srv2",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 34.88,
+      "server_id": "srv3",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 34.05,
+      "server_id": "srv2",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 36.71,
+      "server_id": "srv1",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 34.65,
+      "server_id": "srv4",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 39.85,
+      "server_id": "srv1",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 32.81,
+      "server_id": "srv4",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 35.84,
+      "server_id": "srv3",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 34.8,
+      "server_id": "srv2",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 34.7,
+      "server_id": "srv3",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 35.11,
+      "server_id": "srv4",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 35.55,
+      "server_id": "srv2",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 46.72,
+      "server_id": "srv1",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 42.19,
+      "server_id": "srv4",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 37.94,
+      "server_id": "srv3",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 32.81,
+      "server_id": "srv1",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 35.23,
+      "server_id": "srv2",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 34.39,
+      "server_id": "srv1",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 32.77,
+      "server_id": "srv4",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 35.97,
+      "server_id": "srv3",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 32.34,
+      "server_id": "srv3",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 32.67,
+      "server_id": "srv2",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 33.4,
+      "server_id": "srv1",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 33.94,
+      "server_id": "srv4",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 33.52,
+      "server_id": "srv2",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 33.95,
+      "server_id": "srv3",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 32.84,
+      "server_id": "srv2",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 32.54,
+      "server_id": "srv1",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 33.5,
+      "server_id": "srv4",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 36.13,
+      "server_id": "srv1",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 33.98,
+      "server_id": "srv4",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 31.97,
+      "server_id": "srv3",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 32.98,
+      "server_id": "srv2",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 32.2,
+      "server_id": "srv3",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 31.71,
+      "server_id": "srv1",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 31.86,
+      "server_id": "srv4",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 33.37,
+      "server_id": "srv3",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 32.66,
+      "server_id": "srv2",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 31.88,
+      "server_id": "srv1",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 31.95,
+      "server_id": "srv4",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 31.4,
+      "server_id": "srv3",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 31.61,
+      "server_id": "srv2",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 31.1,
+      "server_id": "srv1",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 31.29,
+      "server_id": "srv4",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 31.54,
+      "server_id": "srv3",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 30.96,
+      "server_id": "srv2",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 31.01,
+      "server_id": "srv1",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 31.5,
+      "server_id": "srv4",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 31.34,
+      "server_id": "srv2",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 32.03,
+      "server_id": "srv3",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 30.81,
+      "server_id": "srv2",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 32.82,
+      "server_id": "srv1",
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "success": true,
+      "latency_ms": 31.33,
+      "server_id": "srv4",
       "status_code": 200,
       "error": null
     }

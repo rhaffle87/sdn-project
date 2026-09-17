@@ -93,6 +93,8 @@ class LoadBalancer:
         """Switch active load balancing algorithm."""
         if algo_name in [config.ALGO_ROUND_ROBIN, config.ALGO_LEAST_CONNECTIONS, config.ALGO_WEIGHTED]:
             self.algorithm = algo_name
+            self.rr_index = 0
+            self.weighted_index = 0
             if algo_name == config.ALGO_WEIGHTED:
                 self._rebuild_weighted_pool()
             LOG.info("[LB] Load balancing algorithm switched to: %s", algo_name)

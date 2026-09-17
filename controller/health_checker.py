@@ -18,6 +18,7 @@ class HealthChecker:
     def __init__(self, app):
         self.app = app
         self.fail_counts = {b["id"]: 0 for b in self.app.lb.backends}
+        self.manual_overrides = {}
         self.probe_thread = hub.spawn(self._probe_loop)
 
     def _probe_loop(self):
@@ -30,11 +31,19 @@ class HealthChecker:
 
     def _probe_all_backends(self):
         """Probe all configured backend servers."""
+        # Only probe if Egress switch s4 is actively connected to the controller
+        if config.DPID_S4 not in self.app.topo.datapaths:
+            return
+
         for backend in self.app.lb.backends:
             b_id = backend["id"]
             ip = backend["ip"]
             port = backend["port"]
             url = f"http://{ip}:{port}/health"
+
+            # If operator manually disabled this server, honor the override
+            if self.manual_overrides.get(b_id) is False:
+                continue
 
             is_alive = False
             route_error = False
@@ -77,6 +86,18 @@ class HealthChecker:
 
     def force_set_health(self, backend_id, is_healthy):
         """Manually override health state of a backend."""
+        self.manual_overrides[backend_id] = bool(is_healthy)
         self.app.lb.update_health_status(backend_id, is_healthy)
         self.fail_counts[backend_id] = 0 if is_healthy else config.HEALTH_FAIL_LIMIT
+        # Optionally notify backend server /health/toggle
+        for b in self.app.lb.backends:
+            if b["id"] == backend_id:
+                try:
+                    url = f"http://{b['ip']}:{b['port']}/health/toggle"
+                    req = urllib.request.Request(url, data=b"", headers={"Content-Type": "application/json"}, method="POST")
+                    with urllib.request.urlopen(req, timeout=1.0) as _:
+                        pass
+                except Exception:
+                    pass
+                break
         return True
