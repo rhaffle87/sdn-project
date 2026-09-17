@@ -277,6 +277,13 @@ This guide provides a comprehensive, step-by-step operational workflow for runni
 - 🐧 **Native WSL2 Terminal (Ubuntu 22.04 LTS Bash)**: For running directly inside an interactive WSL2 shell.
 - 🪟 **Windows PowerShell (`wsl` CLI)**: For executing commands directly from Windows PowerShell without switching into an interactive Linux session.
 
+> 💡 **Directory Navigation Rule (No Hardcoded Paths):**
+> Open your terminal (PowerShell or WSL2 Bash) and navigate to the root directory where you cloned this repository:
+> - **In Windows PowerShell:** `cd <path\to\cloned\sdn-project>` (e.g. `cd C:\Users\Username\sdn-project` or `cd D:\sdn-project`)
+> - **In WSL2 Linux Shell:** `cd <path/to/cloned/sdn-project>` (e.g. `cd ~/sdn-project` or `cd /mnt/c/Users/.../sdn-project`)
+> 
+> *Notice for Windows PowerShell users:* When you execute `wsl` commands from inside your cloned repository directory in PowerShell, WSL automatically inherits your current working directory. You do **not** need to hardcode absolute Linux mount paths!
+
 ---
 
 ### 🖥️ Architecture & Terminal Coordination
@@ -290,11 +297,11 @@ In a Software-Defined Network, the centralized control plane is physically separ
 | **Terminal 3** | **Live Telemetry Dashboard** | `http://localhost:8081` (Flask Web UI) | Enterprise operations console displaying live topology, bandwidth gauges, JFI fairness meter, and server health. |
 | **Terminal 4** | **Experimenter Console** | CLI Probes / REST Client | Injects HTTP traffic, triggers runtime algorithm changes, injects link congestion, and executes benchmark scripts. |
 
-> 💡 **Environment & Path Mapping Reference:**
-> - **Windows Host Path:** `E:\Projects\sdn-project`
-> - **WSL2 Mount Path:** `/mnt/e/Projects/sdn-project`
-> - **Python Virtualenv:** `~/sdn-venv` (or `/home/<username>/sdn-venv`)
-> - **Localhost Port Binding:** WSL2 automatically forwards ports `6653`, `8080`, and `8081` to the Windows host, allowing direct browser access to `http://localhost:8081`.
+> 💡 **Network Port Mapping Reference:**
+> - **OpenFlow Southbound Channel:** `tcp:6653`
+> - **Ryu Controller REST API:** `http://localhost:8080`
+> - **Live Telemetry Web Dashboard:** `http://localhost:8081`
+> - **WSL2 Automatic Port Forwarding:** WSL2 automatically forwards ports `6653`, `8080`, and `8081` to the Windows host, allowing direct browser access to `http://localhost:8081`.
 
 ---
 
@@ -307,7 +314,12 @@ Open **Windows PowerShell** and confirm your Ubuntu distribution is running WSL 
 ```powershell
 wsl -l -v
 ```
-*(If your distribution indicates Version 1, upgrade with: `wsl --set-version Ubuntu-22.04 2`)*
+
+🔍 **Crosscheck & Verification:**
+- Look for `VERSION: 2` next to your default distribution (e.g. `Ubuntu-22.04`).
+- *(If your distribution indicates Version 1, upgrade with: `wsl --set-version <distro-name> 2`)*
+
+---
 
 #### 1.2 Install Required System Packages
 Install Mininet, Open vSwitch, Python pip, virtual environment tools, and iperf3:
@@ -324,9 +336,30 @@ wsl -u root apt update
 wsl -u root apt install -y mininet openvswitch-switch python3-pip python3-venv iperf3
 ```
 
+🔍 **Crosscheck & Verification CLI:**
+Run version checks to confirm all core system tools are installed:
+
+- **🐧 WSL Bash:**
+  ```bash
+  mn --version && ovs-vsctl --version | head -n 1 && iperf3 --version | head -n 1 && python3 --version
+  ```
+- **🪟 PowerShell:**
+  ```powershell
+  wsl mn --version; wsl ovs-vsctl --version | Select-Object -First 1; wsl iperf3 --version | Select-Object -First 1; wsl python3 --version
+  ```
+- **Expected Output:**
+  ```
+  2.3.0 (Mininet)
+  ovs-vsctl (Open vSwitch) 2.17+
+  iperf 3.9+
+  Python 3.9+
+  ```
+
+---
+
 #### 1.3 Run Environment Setup & Mininet Patch
 Execute [`./scripts/setup_env.sh`](scripts/setup_env.sh). This automated script:
-1. Verifies that `mn`, `ovs-vsctl`, and `iperf3` are installed.
+1. Verifies that `mn`, `ovs-vsctl`, and `iperf3` are available.
 2. Ensures the `openvswitch-switch` daemon is active.
 3. **Patches `/usr/lib/python3/dist-packages/mininet/clean.py`** to protect `ryu-manager` from accidental termination during `sudo mn -c`.
 4. Creates a Python virtual environment at `~/sdn-venv` and installs all packages from [`requirements.txt`](requirements.txt).
@@ -334,18 +367,56 @@ Execute [`./scripts/setup_env.sh`](scripts/setup_env.sh). This automated script:
 
 **🐧 Native WSL2 Terminal (Bash):**
 ```bash
-cd /mnt/e/Projects/sdn-project
 chmod +x scripts/*.sh
 ./scripts/setup_env.sh
 ```
 
 **🪟 Windows PowerShell (`wsl`):**
 ```powershell
-wsl -e bash -c "cd /mnt/e/Projects/sdn-project && chmod +x scripts/*.sh && ./scripts/setup_env.sh"
+wsl -e bash -c "chmod +x scripts/*.sh && ./scripts/setup_env.sh"
 ```
 
+🔍 **Crosscheck & Verification CLI:**
+Verify that the `clean.py` patch was applied and virtual environment dependencies are present:
+
+- **🐧 WSL Bash:**
+  ```bash
+  # 1. Verify Mininet clean.py patch (should output 0 matches):
+  grep -c "'ryu-manager'" /usr/lib/python3/dist-packages/mininet/clean.py || echo "Patch Confirmed (0 matches)"
+  
+  # 2. Verify virtualenv packages:
+  ~/sdn-venv/bin/pip list | grep -E "ryu|mininet|scapy|flask|matplotlib|networkx"
+  
+  # 3. Test core module imports:
+  ~/sdn-venv/bin/python3 -c "import ryu, mininet, scapy, flask, matplotlib, networkx; print('All core modules verified!')"
+  ```
+- **🪟 PowerShell:**
+  ```powershell
+  # 1. Verify clean.py patch:
+  wsl grep -c "'ryu-manager'" /usr/lib/python3/dist-packages/mininet/clean.py
+  
+  # 2. Verify virtualenv packages:
+  wsl ~/sdn-venv/bin/pip list | Select-String -Pattern "ryu|mininet|scapy|flask|matplotlib|networkx"
+  
+  # 3. Test core module imports:
+  wsl ~/sdn-venv/bin/python3 -c "import ryu, mininet, scapy, flask, matplotlib, networkx; print('All core modules verified!')"
+  ```
+- **Expected Output:**
+  ```
+  Patch Confirmed (0 matches)
+  Flask       2.x+
+  matplotlib  3.x+
+  mininet     2.3.x+
+  networkx    3.x+
+  ryu         4.34+
+  scapy       2.5.x+
+  All core modules verified!
+  ```
+
+---
+
 #### 1.4 Verify Open vSwitch Service Status
-Ensure the Open vSwitch switch daemon is active:
+Ensure the Open vSwitch switch daemon is active and responsive:
 
 **🐧 Native WSL2 Terminal (Bash):**
 ```bash
@@ -357,6 +428,19 @@ sudo service openvswitch-switch status
 wsl -u root service openvswitch-switch status
 ```
 *(If the service is stopped, start it via `sudo service openvswitch-switch start` or `wsl -u root service openvswitch-switch start`.)*
+
+🔍 **Crosscheck & Verification CLI:**
+Test local OVS database socket connectivity:
+
+- **🐧 WSL Bash:**
+  ```bash
+  sudo ovs-vsctl show
+  ```
+- **🪟 PowerShell:**
+  ```powershell
+  wsl -u root ovs-vsctl show
+  ```
+- **Expected Output:** Prints the OVS configuration database UUID without any `database connection failed` error.
 
 ---
 
@@ -376,42 +460,58 @@ Verifies ARP resolution for VIP (`10.0.0.100`), reactive Flow-Mod installation, 
 
 **🐧 Native WSL2 Terminal (Bash):**
 ```bash
-cd /mnt/e/Projects/sdn-project
 ./scripts/run_test.sh tests/test_vip_rewrite.py
 ```
 
 **🪟 Windows PowerShell (`wsl`):**
 ```powershell
-wsl -e bash -c "cd /mnt/e/Projects/sdn-project && ./scripts/run_test.sh tests/test_vip_rewrite.py"
+wsl -e bash -c "./scripts/run_test.sh tests/test_vip_rewrite.py"
 ```
+
+🔍 **Crosscheck & Verification CLI:**
+- **WSL Bash:** `echo "Test 1 Exit Code: $?"`
+- **PowerShell:** `echo "Test 1 Exit Code: $LASTEXITCODE"`
+- **Expected Output:** Console displays `*** All VIP NAT rewrite tests passed successfully! ***` and exit code `0`.
+
+---
 
 #### 2.2 Run Test 2: Multi-Algorithm Load Distribution
 Validates request distribution and mathematical fairness for Round-Robin, Least-Connections, and Weighted (1:2:1:2) policies.
 
 **🐧 Native WSL2 Terminal (Bash):**
 ```bash
-cd /mnt/e/Projects/sdn-project
 ./scripts/run_test.sh tests/test_lb_algorithms.py
 ```
 
 **🪟 Windows PowerShell (`wsl`):**
 ```powershell
-wsl -e bash -c "cd /mnt/e/Projects/sdn-project && ./scripts/run_test.sh tests/test_lb_algorithms.py"
+wsl -e bash -c "./scripts/run_test.sh tests/test_lb_algorithms.py"
 ```
+
+🔍 **Crosscheck & Verification CLI:**
+- **WSL Bash:** `echo "Test 2 Exit Code: $?"`
+- **PowerShell:** `echo "Test 2 Exit Code: $LASTEXITCODE"`
+- **Expected Output:** Console displays `*** All load balancer distribution tests passed! ***` and exit code `0`.
+
+---
 
 #### 2.3 Run Test 3: Backend & Link Failover Recovery
 Validates sub-second failover when a backend server goes down and adaptive rerouting when core links fail.
 
 **🐧 Native WSL2 Terminal (Bash):**
 ```bash
-cd /mnt/e/Projects/sdn-project
 ./scripts/run_test.sh tests/test_failover.py
 ```
 
 **🪟 Windows PowerShell (`wsl`):**
 ```powershell
-wsl -e bash -c "cd /mnt/e/Projects/sdn-project && ./scripts/run_test.sh tests/test_failover.py"
+wsl -e bash -c "./scripts/run_test.sh tests/test_failover.py"
 ```
+
+🔍 **Crosscheck & Verification CLI:**
+- **WSL Bash:** `echo "Test 3 Exit Code: $?"`
+- **PowerShell:** `echo "Test 3 Exit Code: $LASTEXITCODE"`
+- **Expected Output:** Console displays `*** All failover tests passed! ***` and exit code `0`.
 
 ---
 
@@ -437,14 +537,13 @@ Starts the Ryu controller application on OpenFlow port `6653` and WSGI REST API 
 
 **🐧 Native WSL2 Terminal (Bash):**
 ```bash
-cd /mnt/e/Projects/sdn-project
 source ~/sdn-venv/bin/activate
 ryu-manager controller/main.py --ofp-tcp-listen-port 6653
 ```
 
 **🪟 Windows PowerShell (`wsl`):**
 ```powershell
-wsl -e bash -c "cd /mnt/e/Projects/sdn-project && source ~/sdn-venv/bin/activate && ryu-manager controller/main.py --ofp-tcp-listen-port 6653"
+wsl -e bash -c "source ~/sdn-venv/bin/activate && ryu-manager controller/main.py --ofp-tcp-listen-port 6653"
 ```
 
 *Expected startup logs:*
@@ -455,6 +554,23 @@ wsl -e bash -c "cd /mnt/e/Projects/sdn-project && source ~/sdn-venv/bin/activate
 [INFO] (WSGI) serving on http://0.0.0.0:8080
 ```
 
+🔍 **Crosscheck & Verification CLI (from Terminal 4 or PowerShell):**
+Confirm Ryu is actively listening on both OpenFlow port 6653 and REST API port 8080:
+
+- **🪟 PowerShell:**
+  ```powershell
+  Test-NetConnection -ComputerName 127.0.0.1 -Port 6653
+  Test-NetConnection -ComputerName 127.0.0.1 -Port 8080
+  Invoke-RestMethod -Uri "http://localhost:8080/api/stats"
+  ```
+- **🐧 WSL Bash:**
+  ```bash
+  ss -tulpn | grep -E "6653|8080"
+  curl -s http://127.0.0.1:8080/api/stats | head -n 8
+  ```
+- **Expected Output:**
+  `TcpTestSucceeded: True` for both ports, and REST returns JSON with `"algorithm": "round_robin"`.
+
 ---
 
 #### 3.2 Terminal 2: Launch Mininet Diamond Mesh Topology
@@ -462,14 +578,13 @@ Cleans any stale network namespaces and starts the Mininet topology (4 OVS switc
 
 **🐧 Native WSL2 Terminal (Bash):**
 ```bash
-cd /mnt/e/Projects/sdn-project
 sudo mn -c
 sudo $(which python3) topology/lb_topology.py
 ```
 
 **🪟 Windows PowerShell (`wsl`):**
 ```powershell
-wsl -e bash -c "cd /mnt/e/Projects/sdn-project && sudo mn -c && sudo /home/$USER/sdn-venv/bin/python3 topology/lb_topology.py"
+wsl -e bash -c "sudo mn -c && sudo /home/$USER/sdn-venv/bin/python3 topology/lb_topology.py"
 ```
 
 *Expected events:*
@@ -479,8 +594,20 @@ wsl -e bash -c "cd /mnt/e/Projects/sdn-project && sudo mn -c && sudo /home/$USER
 
 > **Note (Headless / Daemon Mode):** If you wish to run Mininet in daemon mode without an interactive CLI, pass `--no-cli`:
 > ```powershell
-> wsl -e bash -c "cd /mnt/e/Projects/sdn-project && sudo /home/$USER/sdn-venv/bin/python3 topology/lb_topology.py --no-cli"
+> wsl -e bash -c "sudo /home/$USER/sdn-venv/bin/python3 topology/lb_topology.py --no-cli"
 > ```
+
+🔍 **Crosscheck & Verification CLI (from Terminal 4 or PowerShell):**
+Confirm that OVS switches are connected to Ryu and backend servers are running:
+
+- **Check Switch OpenFlow Connection to Controller:**
+  - **🪟 PowerShell:** `wsl -u root ovs-vsctl get Bridge s1 is_connected`
+  - **🐧 WSL Bash:** `sudo ovs-vsctl get Bridge s1 is_connected`
+  - **Expected Output:** `true`
+- **Check Backend HTTP Server Processes:**
+  - **🪟 PowerShell:** `wsl pgrep -a -f "backend_server.py"`
+  - **🐧 WSL Bash:** `pgrep -a -f "backend_server.py"`
+  - **Expected Output:** 4 processes running (one for each server `s1_srv` through `s4_srv`).
 
 ---
 
@@ -489,25 +616,32 @@ Starts the real-time Flask operations console on port `8081`:
 
 **🐧 Native WSL2 Terminal (Bash):**
 ```bash
-cd /mnt/e/Projects/sdn-project
 source ~/sdn-venv/bin/activate
 python3 dashboard/live_dashboard.py
 ```
 
 **🪟 Windows PowerShell (`wsl`):**
 ```powershell
-wsl -e bash -c "cd /mnt/e/Projects/sdn-project && source ~/sdn-venv/bin/activate && python3 dashboard/live_dashboard.py"
+wsl -e bash -c "source ~/sdn-venv/bin/activate && python3 dashboard/live_dashboard.py"
 ```
 
 *Accessing the Dashboard:*
 Open your web browser on Windows (Chrome, Edge, Firefox) and navigate to:
 👉 **`http://localhost:8081`**
 
-The dashboard provides a complete NOC-grade operations interface:
-- **Topology & Health Map:** Real-time visual status of `s1_srv` through `s4_srv`.
-- **Active LB Algorithm Selector:** Switch dynamically between Round-Robin, Least-Connections, and Weighted.
-- **Dynamic Link Telemetry:** Live bandwidth gauges comparing Upper Path A (`s1` $\leftrightarrow$ `s2` $\leftrightarrow$ `s4`) and Lower Path B (`s1` $\leftrightarrow$ `s3` $\leftrightarrow$ `s4`).
-- **Jain's Fairness Index Meter:** Real-time mathematical fairness quantification updated every second.
+🔍 **Crosscheck & Verification CLI:**
+Confirm the dashboard web service is listening and serving requests:
+
+- **🪟 PowerShell:**
+  ```powershell
+  Test-NetConnection -ComputerName 127.0.0.1 -Port 8081
+  (Invoke-WebRequest -Uri "http://localhost:8081/").StatusCode
+  ```
+- **🐧 WSL Bash:**
+  ```bash
+  curl -sI http://localhost:8081/ | head -n 1
+  ```
+- **Expected Output:** `TcpTestSucceeded: True` and HTTP status code `200`.
 
 ---
 
@@ -529,6 +663,13 @@ mininet> h1 for i in {1..8}; do curl -s http://10.0.0.100/; echo ""; done
 mininet> h1 ping -c 3 10.0.0.100
 ```
 
+🔍 **Crosscheck & Verification:**
+- Each curl command returns a JSON response identifying the handling backend:
+  `{"client": "10.0.0.1", "request_count": 1, "server_id": "srv1"}`
+- In a loop of 8 requests under Round-Robin, responses cycle uniformly: `srv1` $\to$ `srv2` $\to$ `srv3` $\to$ `srv4` $\to$ `srv1`...
+
+---
+
 #### 4.2 Inspect OpenFlow 1.3 Flow Tables
 Inspect the flow table rules installed reactively by Ryu on the ingress switch (`s1`):
 
@@ -541,7 +682,14 @@ sudo ovs-ofctl -O OpenFlow13 dump-flows s1
 ```powershell
 wsl -u root ovs-ofctl -O OpenFlow13 dump-flows s1
 ```
-*(Notice the Priority 50 forward NAT rule rewriting `nw_dst=10.0.0.100` $\to$ `10.0.0.1X` and Priority 40 reverse rule rewriting `nw_src=10.0.0.1X` $\to$ `10.0.0.100`.)*
+
+🔍 **Crosscheck & Verification:**
+Confirm the presence of reactive flow entries with packet and byte increments:
+- **Priority 50 (Forward NAT):** Matches `nw_dst=10.0.0.100`, rewrites `mod_dl_dst`, `mod_nw_dst`, and outputs to transit port.
+- **Priority 40 (Reverse NAT):** Matches `nw_src=10.0.0.1X`, rewrites `mod_dl_src`, `mod_nw_src=10.0.0.100`, and returns packet to client.
+- **`n_packets` and `n_bytes`:** Must be greater than 0, verifying hardware/kernel forwarding hit counts.
+
+---
 
 #### 4.3 Query Real-Time Telemetry via REST API
 Query the Ryu REST API (`port 8080`) directly from Windows PowerShell:
@@ -555,6 +703,11 @@ Invoke-RestMethod -Uri "http://localhost:8080/api/telemetry" | ConvertTo-Json -D
 ```bash
 curl -s http://localhost:8080/api/telemetry | jq .
 ```
+
+🔍 **Crosscheck & Verification:**
+Verify that `link_utilization` contains byte rates for Upper Path A and Lower Path B, and `active_connections` reflects currently active flows.
+
+---
 
 #### 4.4 Dynamically Switch Load Balancing Algorithms at Runtime
 Switch algorithms on-the-fly without restarting controller or switches:
@@ -579,6 +732,14 @@ Switch algorithms on-the-fly without restarting controller or switches:
   curl -X POST http://localhost:8080/api/algorithm -H "Content-Type: application/json" -d '{"algorithm": "weighted"}'
   ```
 
+🔍 **Crosscheck & Verification CLI:**
+Confirm that the active algorithm updated on the controller:
+- **PowerShell:** `(Invoke-RestMethod http://localhost:8080/api/stats).algorithm`
+- **WSL Bash:** `curl -s http://localhost:8080/api/stats | grep '"algorithm"'`
+- **Expected Output:** Confirms `"least_connections"` or `"weighted"`.
+
+---
+
 #### 4.5 Simulate Backend Server Failure & Sub-Second Failover
 Mark backend `srv1` (`10.0.0.11`) as DOWN via the REST API to trigger active failover:
 
@@ -594,38 +755,52 @@ Invoke-RestMethod -Uri "http://localhost:8080/api/backend/health" -Method Post -
 curl -X POST http://localhost:8080/api/backend/health -H "Content-Type: application/json" -d '{"backend_id": 0, "healthy": false}'
 ```
 
-*Verification:*
-1. Check the Web Dashboard: `srv1` immediately switches to **DEAD** (red indicator).
-2. Execute a loop of requests from `h1` in Mininet:
+🔍 **Crosscheck & Verification CLI:**
+1. **Verify Health State:**
+   - **PowerShell:** `(Invoke-RestMethod http://localhost:8080/api/stats).backends[0].healthy`
+   - **Expected Output:** `False`
+2. **Verify Failover on Dashboard:** The indicator for `srv1` changes to **DEAD** (red).
+3. **Dispatch Verification Requests:** From Mininet CLI:
    ```bash
    mininet> h1 for i in {1..6}; do curl -s http://10.0.0.100/; echo ""; done
    ```
-   All requests are distributed exclusively among healthy backends (`srv2`, `srv3`, `srv4`) with **0% packet loss**!
-3. Restore `srv1` back online:
+   All requests are distributed exclusively among healthy backends (`srv2`, `srv3`, `srv4`) with **0% request failure**!
+4. **Restore `srv1` back online:**
    ```powershell
    Invoke-RestMethod -Uri "http://localhost:8080/api/backend/health" -Method Post -ContentType "application/json" -Body '{"backend_id": 0, "healthy": true}'
    ```
+   Confirm `(Invoke-RestMethod http://localhost:8080/api/stats).backends[0].healthy` returns `True`.
+
+---
 
 #### 4.6 Simulate Traffic Congestion & Adaptive Rerouting
 Generate high-concurrency traffic to Upper Path A using [`benchmark/generate_load.py`](benchmark/generate_load.py):
 
 **🐧 Native WSL2 Terminal (Bash):**
 ```bash
-cd /mnt/e/Projects/sdn-project
 source ~/sdn-venv/bin/activate
 python3 benchmark/generate_load.py --requests 60 --concurrency 6
 ```
 
 **🪟 Windows PowerShell (`wsl`):**
 ```powershell
-wsl -e bash -c "cd /mnt/e/Projects/sdn-project && source ~/sdn-venv/bin/activate && python3 benchmark/generate_load.py --requests 60 --concurrency 6"
+wsl -e bash -c "source ~/sdn-venv/bin/activate && python3 benchmark/generate_load.py --requests 60 --concurrency 6"
 ```
 
-*Observe on Dashboard & Terminal 1:*
-- Path A bandwidth crosses the **80% threshold ratio**.
-- Terminal 1 logs: `[TE] *** ADAPTIVE REROUTING TRIGGERED *** Congestion on Path A. Rerouted to Path B.`
-- New flows automatically route through Transit Switch `s3` (Lower Path B).
-- When Path A traffic drops below **50% for 2 consecutive cycles**, the controller seamlessly restores primary routing.
+🔍 **Crosscheck & Verification CLI:**
+Query traffic engineering state during/after high-load injection:
+
+- **🪟 PowerShell:**
+  ```powershell
+  (Invoke-RestMethod -Uri "http://localhost:8080/api/telemetry").traffic_engineering
+  ```
+- **🐧 WSL Bash:**
+  ```bash
+  curl -s http://localhost:8080/api/telemetry | jq .traffic_engineering
+  ```
+- **Expected Output:**
+  Displays `active_path`, `path_a_utilization`, `path_b_utilization`, and `last_reason` indicating rerouting or primary restoration.
+- **Terminal 1 Log Check:** Terminal 1 prints `[TE] *** ADAPTIVE REROUTING TRIGGERED *** Congestion on Path A. Rerouted to Path B.`
 
 ---
 
@@ -638,41 +813,67 @@ Ensure Ryu controller is running in Terminal 1, then execute:
 
 **🐧 Native WSL2 Terminal (Bash):**
 ```bash
-cd /mnt/e/Projects/sdn-project
 sudo mn -c
 sudo /home/$USER/sdn-venv/bin/python3 benchmark/run_all_benchmarks.py
 ```
 
 **🪟 Windows PowerShell (`wsl`):**
 ```powershell
-wsl -e bash -c "cd /mnt/e/Projects/sdn-project && sudo mn -c && sudo /home/$USER/sdn-venv/bin/python3 benchmark/run_all_benchmarks.py"
+wsl -e bash -c "sudo mn -c && sudo /home/$USER/sdn-venv/bin/python3 benchmark/run_all_benchmarks.py"
 ```
 
-*Expected outputs:*
-- Structured evaluation metrics saved to `benchmark/results/summary_metrics.json`.
-- Automatic execution of `dashboard/plot_results.py`.
+🔍 **Crosscheck & Verification CLI:**
+Confirm that benchmark evaluation records were calculated and saved to JSON:
+
+- **🪟 PowerShell:**
+  ```powershell
+  wsl cat benchmark/results/summary_metrics.json | Select-String -Pattern "jains_fairness_index|throughput_rps"
+  ```
+- **🐧 WSL Bash:**
+  ```bash
+  python3 -c "import json; d=json.load(open('benchmark/results/summary_metrics.json')); [print(f'[{k.upper()}] JFI: {v[\"jains_fairness_index\"]}, RPS: {v[\"throughput_rps\"]}') for k,v in d.items()]"
+  ```
+- **Expected Output:**
+  ```
+  [ROUND_ROBIN] JFI: 1.0, RPS: 32.13
+  [LEAST_CONNECTIONS] JFI: 1.0, RPS: 29.53
+  [WEIGHTED] JFI: 1.0, RPS: 28.91
+  ```
+
+---
 
 #### 5.2 Standalone Plot Regeneration
 To re-generate all scientific figures from existing benchmark data at any time:
 
 **🐧 Native WSL2 Terminal (Bash):**
 ```bash
-cd /mnt/e/Projects/sdn-project
 source ~/sdn-venv/bin/activate
 python3 dashboard/plot_results.py
 ```
 
 **🪟 Windows PowerShell (`wsl`):**
 ```powershell
-wsl -e bash -c "cd /mnt/e/Projects/sdn-project && source ~/sdn-venv/bin/activate && python3 dashboard/plot_results.py"
+wsl -e bash -c "source ~/sdn-venv/bin/activate && python3 dashboard/plot_results.py"
 ```
+
+🔍 **Crosscheck & Verification CLI:**
+Verify that all 4 scientific comparison figures have been generated and are non-empty:
+
+- **🪟 PowerShell:**
+  ```powershell
+  Get-ChildItem figures\*.png | Select-Object Name, Length, LastWriteTime
+  ```
+- **🐧 WSL Bash:**
+  ```bash
+  ls -lh figures/*.png
+  ```
+- **Expected Output:** All 4 plot files (`load_distribution_comparison.png`, `latency_cdf.png`, `throughput_comparison.png`, `fairness_index_comparison.png`) are present with file sizes > 50 KB.
 
 #### 5.3 View Generated Figures in Windows Explorer
 From Windows PowerShell, open the generated figures directory directly in Windows File Explorer:
 ```powershell
 explorer.exe figures
 ```
-*(Displays `load_distribution_comparison.png`, `latency_cdf.png`, `throughput_comparison.png`, and `fairness_index_comparison.png`.)*
 
 ---
 
@@ -682,14 +883,33 @@ When testing is finished, execute [`./scripts/cleanup.sh`](scripts/cleanup.sh) t
 
 **🐧 Native WSL2 Terminal (Bash):**
 ```bash
-cd /mnt/e/Projects/sdn-project
 ./scripts/cleanup.sh
 ```
 
 **🪟 Windows PowerShell (`wsl`):**
 ```powershell
-wsl -e bash -c "cd /mnt/e/Projects/sdn-project && ./scripts/cleanup.sh"
+wsl -e bash -c "./scripts/cleanup.sh"
 ```
+
+🔍 **Crosscheck & Verification CLI:**
+Perform post-cleanup verification to confirm a pristine state:
+
+1. **Verify No Dangling OVS Bridges:**
+   - **PowerShell:** `wsl -u root ovs-vsctl list-br`
+   - **WSL Bash:** `sudo ovs-vsctl list-br`
+   - **Expected Output:** Empty (no output).
+2. **Verify No Background Python / SDN Processes:**
+   - **PowerShell:** `wsl pgrep -a -f "ryu-manager|backend_server|live_dashboard|mininet"`
+   - **WSL Bash:** `pgrep -a -f "ryu-manager|backend_server|live_dashboard|mininet"`
+   - **Expected Output:** Empty (no processes found).
+3. **Verify TCP Ports are Released:**
+   - **PowerShell:**
+     ```powershell
+     Test-NetConnection -ComputerName 127.0.0.1 -Port 6653
+     Test-NetConnection -ComputerName 127.0.0.1 -Port 8080
+     Test-NetConnection -ComputerName 127.0.0.1 -Port 8081
+     ```
+   - **Expected Output:** `TcpTestSucceeded: False` for all three ports.
 
 ---
 
@@ -732,7 +952,8 @@ wsl -e bash -c "cd /mnt/e/Projects/sdn-project && ./scripts/cleanup.sh"
 - **Fix:** Kill lingering processes listening on these ports:
   ```powershell
   wsl -u root fuser -k 6653/tcp 8080/tcp 8081/tcp
-  wsl -e bash -c "cd /mnt/e/Projects/sdn-project && ./scripts/cleanup.sh"
+  wsl -e bash -c "./scripts/cleanup.sh"
   ```
+
 
 
