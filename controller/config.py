@@ -76,13 +76,13 @@ S4_PORT_TO_S2 = 5
 S4_PORT_TO_S3 = 6
 
 # OpenFlow Priority Hierarchy
-PRIO_HEALTH_BYPASS = 100     # Direct health monitoring traffic
-PRIO_FORWARD_NAT = 50        # VIP -> Backend NAT rewrite
+PRIO_HEALTH_BYPASS = 100     # Direct health monitoring traffic (bypasses NAT)
+PRIO_FORWARD_NAT = 50        # VIP -> Backend NAT rewrite (embeds TE transit output port)
 PRIO_REVERSE_NAT = 40        # Backend -> VIP reverse NAT rewrite
-PRIO_ARP = 30                # ARP responder & forwarding
-PRIO_TRAFFIC_ENG = 20        # Traffic engineering overrides
+PRIO_ARP = 30                # Proactive VIP Proxy ARP flow on s1 & reactive responder
+PRIO_TRAFFIC_ENG = 20        # Traffic engineering overrides (reserved for L3 bulk transit)
 PRIO_UNICAST_LEARNED = 10    # Standard L2/L3 learned unicast
-PRIO_TABLE_MISS = 0          # Table-Miss default (to controller)
+PRIO_TABLE_MISS = 0          # Table-Miss default (to controller via Packet-In)
 
 # Flow Timeout Settings (in seconds)
 IDLE_TIMEOUT_NAT = 20        # Reclaim inactive TCP session flows

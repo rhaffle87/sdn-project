@@ -237,13 +237,13 @@ Systematic benchmarking was conducted across 3 full iterations (72 requests tota
 | **Standard JFI ($\mathcal{J}$)** | **`1.0000`** | **`1.0000`** | `0.9000` |
 | **Weighted JFI ($\mathcal{J}_w$)** | `0.9000` | `0.9000` | **`1.0000`** |
 | **Throughput (Requests/sec)** | **32.13 RPS** | 32.05 RPS | 27.34 RPS |
-| **Minimum Latency** | **29.52 ms** | 30.12 ms | 30.80 ms |
+| **Minimum Latency** | 30.81 ms | 30.61 ms | **30.58 ms** |
 | **Average Latency** | 34.18 ms | **33.87 ms** | 69.87 ms |
 | **Median ($P_{50}$) Latency** | 33.45 ms | **32.55 ms** | 32.23 ms |
-| **90th Percentile ($P_{90}$)** | 37.89 ms | **35.12 ms** | 120.45 ms |
+| **90th Percentile ($P_{90}$)** | 37.33 ms | **34.62 ms** | 41.83 ms |
 | **95th Percentile ($P_{95}$)** | 39.61 ms | **36.03 ms** | 313.92 ms |
 | **99th Percentile ($P_{99}$)** | **46.81 ms** | 69.05 ms | 708.14 ms |
-| **Maximum Latency** | **54.20 ms** | 75.30 ms | 782.10 ms |
+| **Maximum Latency** | **47.04 ms** | 87.59 ms | 729.20 ms |
 
 ---
 

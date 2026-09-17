@@ -112,9 +112,11 @@ To avoid packet ambiguity and race conditions, the single-table and multi-pipeli
 | **50** | Forward VIP NAT (Client $\rightarrow$ Server) | `eth_type=0x0800, ip_proto=6, ipv4_src=client_ip, ipv4_dst=10.0.0.100, tcp_dst=80` | `SET_FIELD(ipv4_dst=srv_ip)`, `SET_FIELD(eth_dst=srv_mac)`, `OUTPUT:transit_port` | `idle=20, hard=60` |
 | **40** | Reverse VIP NAT (Server $\rightarrow$ Client) | `eth_type=0x0800, ip_proto=6, ipv4_src=srv_ip, ipv4_dst=client_ip, tcp_src=80` | `SET_FIELD(ipv4_src=10.0.0.100)`, `SET_FIELD(eth_src=vip_mac)`, `OUTPUT:client_port` | `idle=20, hard=60` |
 | **30** | Proxy ARP Handling | `eth_type=0x0806, arp_tpa=10.0.0.100` | Controller Packet-In / Direct Controller ARP Reply | `idle=0, hard=0` |
-| **20** | Traffic Engineering Rerouting | Link-specific forwarding rules | Forward to alternate path (Path B instead of Path A) | `idle=30, hard=120` |
+| **20** | Traffic Engineering Transit Overrides | Non-VIP bulk/L3 rerouting rules | Forward to alternate path (Path B instead of Path A) | `idle=30, hard=120` |
 | **10** | Standard Unicast L2/L3 Forwarding | `eth_dst=host_mac` | `OUTPUT:host_port` | `idle=30, hard=60` |
 | **0** | Default Table-Miss | `match=*` | `OUTPUT:OFPP_CONTROLLER` (Buffer: `OFPCML_NO_BUFFER`) | Permanent |
+
+> **Architectural Note on Traffic Engineering:** For Layer 4 VIP load-balanced connections, traffic engineering path steering is natively embedded directly into the **Priority 50** forward NAT rule via its designated output port (`config.S1_PORT_TO_S2` for Path A vs `config.S1_PORT_TO_S3` for Path B), eliminating redundant table lookups. **Priority 20** is reserved for Layer 3 bulk/non-VIP transit overrides.
 
 ### Annotated `ovs-ofctl dump-flows` Example (Switch s1)
 
@@ -123,6 +125,9 @@ The following is an annotated example of the flow table on the ingress switch `s
 ```text
 # Table-Miss: Unmatched packets → Controller (Priority 0)
 cookie=0x0, duration=120.5s, table=0, n_packets=42, priority=0 actions=CONTROLLER:65535
+
+# Proxy ARP: Intercept ARP for VIP 10.0.0.100 (Priority 30)
+cookie=0x0, duration=14.5s, table=0, n_packets=3, priority=30,arp,arp_tpa=10.0.0.100 actions=CONTROLLER:65535
 
 # Forward NAT: Client→VIP rewritten to Client→Backend (Priority 50)
 cookie=0x0, duration=5.2s, table=0, n_packets=8, idle_timeout=20, hard_timeout=60,
@@ -144,7 +149,8 @@ cookie=0x0, duration=30.1s, table=0, n_packets=3, idle_timeout=30, hard_timeout=
 ```
 
 **Key observations:**
-- Forward NAT (`priority=50`) rewrites `nw_dst` from VIP `10.0.0.100` to the selected backend `10.0.0.12` and outputs to the transit switch port.
+- Proxy ARP (`priority=30`) intercepts ARP requests for VIP `10.0.0.100` before Table-Miss, directing them to the controller for virtual MAC synthesis.
+- Forward NAT (`priority=50`) rewrites `nw_dst` from VIP `10.0.0.100` to the selected backend `10.0.0.12` and outputs directly to the transit switch port determined by active traffic engineering.
 - Reverse NAT (`priority=40`) rewrites `nw_src` from the backend IP back to the VIP so the client sees responses from `10.0.0.100`.
 - Both NAT flows use `idle_timeout=20` and `hard_timeout=60` with `OFPFF_SEND_FLOW_REM` flag to trigger `EventOFPFlowRemoved` for connection tracking.
 
@@ -163,7 +169,7 @@ sequenceDiagram
     participant Server as Backend Server (10.0.0.12)
     Note over Client,Ryu: Step 1: Virtual IP ARP Resolution
     Client->>S1: ARP Request: Who has 10.0.0.100?
-    S1->>Ryu: OFPT_PACKET_IN (ARP Request)
+    S1->>Ryu: OFPT_PACKET_IN (Match: Priority 30 Proxy ARP Rule)
     Ryu->>S1: OFPT_PACKET_OUT (ARP Reply: 10.0.0.100 is at 00:00:00:00:00:fe)
     S1->>Client: ARP Reply: 10.0.0.100 is at 00:00:00:00:00:fe
     Note over Client,Server: Step 2: TCP Connection Initiation (SYN)

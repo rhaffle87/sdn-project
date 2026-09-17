@@ -247,11 +247,11 @@ flowchart LR
 - **Evaluation Criteria (CPMK-5):**
   1. **Jain's Fairness Index ($J$):**
      $$J(x_1, x_2, \dots, x_n) = \frac{\left( \sum_{i=1}^n x_i \right)^2}{n \cdot \sum_{i=1}^n x_i^2}$$
-     - Standard RR achieves $J = 0.9994$ under uniform server weights.
+     - Standard RR achieves $J = 1.0000$ (optimal equity, 72/72 requests, uniform `[18, 18, 18, 18]`).
      - Least-Connections achieves $J = 1.0000$ (optimal equity).
      - Weighted LB achieves $J_w = 1.0000$ against normalized target ratios $(1:2:1:2)$.
   2. **Latency CDF & Throughput:**
-     - Measured via concurrent HTTP clients with percentiles ($P_{50} = 36.75\text{ ms}$, $P_{95} = 68.80\text{ ms}$ on LC, and $P_{99} = 132.08\text{ ms}$ on WRR).
+     - Measured via concurrent HTTP clients with percentiles ($P_{50} = 32.55\text{ ms}$, $P_{95} = 36.03\text{ ms}$ on LC, $P_{99} = 46.81\text{ ms}$ on RR, and $P_{99} = 708.14\text{ ms}$ on WRR).
   3. **Failover Recovery Duration:**
      - Sub-second recovery upon backend server death or transit link severed. For comprehensive charts and empirical curves, see [Load Balancing Algorithms Specification](algorithms.md) and [Capstone Final Report](final_report.md).
 

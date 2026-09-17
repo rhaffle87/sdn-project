@@ -67,11 +67,11 @@ def select_least_connections(healthy_servers, active_connections):
     min_conn = float('inf')
     best_server = healthy_servers[0]
     for srv in healthy_servers:
-        conn = active_connections.get(srv['ip'], 0)
+        conn = active_connections.get(srv['id'], 0)
         if conn < min_conn:
             min_conn = conn
             best_server = srv
-    active_connections[best_server['ip']] += 1
+    active_connections[best_server['id']] += 1
     return best_server
 ```
 

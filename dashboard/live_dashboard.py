@@ -99,7 +99,7 @@ def _sim_dispatch(count: int) -> list:
             if srv_id is None:
                 results.append("error")
                 continue
-            latency_ms = max(8.0, round(random.gauss(42, 18), 2))
+            latency_ms = max(12.0, round(random.gauss(34, 6), 2))
             _sim["total_requests"][srv_id] += 1
             _sim["active_connections"][srv_id] = max(0, _sim["active_connections"][srv_id] + 1)
             _sim["latencies"].append(latency_ms)
