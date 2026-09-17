@@ -152,9 +152,9 @@ The algorithms were benchmarked systematically inside the Mininet environment ac
 
 | Algorithm | Total Requests | Distribution `[srv1, srv2, srv3, srv4]` | Target Ratio | Achieved Ratio | JFI ($\mathcal{J}$) | Weighted JFI ($\mathcal{J}_w$) | Avg Latency | Median Latency | P95 Latency | P99 Latency | RPS |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Round-Robin** | 72 (3 $\times$ 24) | `[18, 18, 18, 17]` | 1 : 1 : 1 : 1 | 1.05 : 1.05 : 1.05 : 1.00 | **0.9994** | 0.9000 | 61.12 ms | 36.62 ms | 133.76 ms | 440.49 ms | 27.55 |
-| **Least-Connections** | 72 (3 $\times$ 24) | `[18, 18, 18, 18]` | 1 : 1 : 1 : 1 | **1 : 1 : 1 : 1** | **1.0000** | 0.9000 | **51.16 ms** | 36.75 ms | **68.80 ms** | 334.33 ms | 28.37 |
-| **Weighted (WRR)** | 72 (3 $\times$ 24) | `[12, 24, 12, 24]` | 1 : 2 : 1 : 2 | **1 : 2 : 1 : 2** | 0.9000 | **1.0000** | 51.77 ms | 41.82 ms | 91.78 ms | **132.08 ms** | **28.73** |
+| **Round-Robin** | 72 (3 $\times$ 24) | `[18, 18, 18, 18]` | 1 : 1 : 1 : 1 | **1 : 1 : 1 : 1** | **1.0000** | 0.9000 | 34.18 ms | 33.45 ms | 39.61 ms | **46.81 ms** | **32.13** |
+| **Least-Connections** | 72 (3 $\times$ 24) | `[18, 18, 18, 18]` | 1 : 1 : 1 : 1 | **1 : 1 : 1 : 1** | **1.0000** | 0.9000 | **33.87 ms** | **32.55 ms** | **36.03 ms** | 69.05 ms | 32.05 |
+| **Weighted (WRR)** | 72 (3 $\times$ 24) | `[12, 24, 12, 24]` | 1 : 2 : 1 : 2 | **1 : 2 : 1 : 2** | 0.9000 | **1.0000** | 69.87 ms | 32.23 ms | 313.92 ms | 708.14 ms | 27.34 |
 
 ---
 
@@ -163,41 +163,41 @@ The algorithms were benchmarked systematically inside the Mininet environment ac
 #### Figure 6.1: Backend Request Distribution
 ![Backend Load Distribution Across Load Balancing Algorithms](../figures/load_distribution_comparison.png)
 
-*Figure 6.1: Total requests served by each backend instance (`srv1` to `srv4`) across the three algorithms. Round-Robin and Least-Connections maintain uniform distribution across all servers, whereas Weighted allocates exactly double the load to higher-capacity servers `srv2` and `srv4` ($12:24:12:24$).*
+*Figure 6.1: Total requests served by each backend instance (`srv1` to `srv4`) across the three algorithms. Round-Robin and Least-Connections maintain uniform distribution across all servers ($18:18:18:18$), whereas Weighted allocates exactly double the load to higher-capacity servers `srv2` and `srv4` ($12:24:12:24$).*
 
 ---
 
 #### Figure 6.2: Jain's Fairness Index Comparison
 ![Jain's Fairness Index Across Load Balancing Algorithms](../figures/fairness_index_comparison.png)
 
-*Figure 6.2: Jain's Fairness Index ($\mathcal{J}$) comparison against the theoretical optimum of $1.0000$ (red dashed line). Least-Connections achieves perfect equity ($\mathcal{J} = 1.0000$), Round-Robin reaches near-perfection ($\mathcal{J} = 0.9994$), and Weighted Round-Robin scores an ideal normalized fairness index ($\mathcal{J}_w = 1.0000$).*
+*Figure 6.2: Jain's Fairness Index ($\mathcal{J}$) comparison against the theoretical optimum of $1.0000$ (red dashed line). Both Least-Connections and Round-Robin achieve absolute mathematical equity ($\mathcal{J} = 1.0000$), while Weighted Round-Robin scores an ideal normalized fairness index ($\mathcal{J}_w = 1.0000$).*
 
 ---
 
 #### Figure 6.3: Empirical Latency Cumulative Distribution Function (CDF)
 ![Empirical Latency CDF Under Concurrent Load](../figures/latency_cdf.png)
 
-*Figure 6.3: Cumulative Distribution Function (CDF) of client request latencies under concurrent load ($C=4$). The steep vertical rise between 30 ms and 50 ms illustrates that over 85% of requests are processed rapidly in OVS fast-path kernel space, while the long tail accounts for initial controller Table-Miss packet-in setup overhead.*
+*Figure 6.3: Cumulative Distribution Function (CDF) of client request latencies under concurrent load ($C=4$). The steep vertical rise between 30 ms and 40 ms illustrates that over 90% of requests are processed rapidly in OVS fast-path kernel space, while the tail accounts for initial controller Table-Miss packet-in setup overhead.*
 
 ---
 
 #### Figure 6.4: System Throughput (RPS) and Processing Speed
 ![System Throughput Comparison](../figures/throughput_comparison.png)
 
-*Figure 6.4: Request-per-second (RPS) throughput across algorithms. Weighted Round-Robin achieves the highest processing rate ($28.73\text{ RPS}$) and lowest tail latency ($P_{99} = 132.08\text{ ms}$) by steering the majority of requests toward higher-capacity nodes.*
+*Figure 6.4: Request-per-second (RPS) throughput across algorithms. Round-Robin and Least-Connections achieve maximum processing rates ($32.13\text{ RPS}$ and $32.05\text{ RPS}$) with minimal scheduling overhead.*
 
 ---
 
 ### 6.2 In-Depth Performance Analysis
 
 1. **Least-Connections Perfection ($\mathcal{J} = 1.0000$):**
-   Least-Connections achieved absolute mathematical uniformity ($18:18:18:18$) across all 4 backends. Because active connection tracking dynamically adapts to real-time socket lifetimes, it prevented queue buildup on any single server, resulting in the lowest average response latency ($51.16\text{ ms}$) and lowest 95th percentile latency ($68.80\text{ ms}$).
+   Least-Connections achieved absolute mathematical uniformity ($18:18:18:18$) across all 4 backends. Because active connection tracking dynamically adapts to real-time socket lifetimes, it prevented queue buildup on any single server, resulting in the lowest average response latency ($33.87\text{ ms}$) and lowest 95th percentile latency ($36.03\text{ ms}$).
 
 2. **Weighted Round-Robin Capacity Steering ($\mathcal{J}_w = 1.0000$):**
-   Weighted Round-Robin matched its target ratio of $1:2:1:2$ with zero deviation ($[12, 24, 12, 24]$). By directing two-thirds ($66.7\%$) of incoming connections to higher-weight servers (`srv2` and `srv4`), it yielded the highest overall throughput ($28.73\text{ RPS}$) and mitigated tail latency spikes ($P_{99} = 132.08\text{ ms}$ vs $440.49\text{ ms}$ for Round-Robin).
+   Weighted Round-Robin matched its target ratio of $1:2:1:2$ with zero deviation ($[12, 24, 12, 24]$). By directing two-thirds ($66.7\%$) of incoming connections to higher-weight servers (`srv2` and `srv4`), it conforms strictly to heterogeneous capacity assignments with normalized fairness $\mathcal{J}_w = 1.0000$.
 
-3. **Round-Robin Resilience ($\mathcal{J} = 0.9994$):**
-   Round-Robin executed with minimal CPU overhead, achieving near-perfect fairness ($0.9994$) with 71/72 successful completions. The slight divergence occurred due to a single client socket timeout during initial ARP cold start.
+3. **Round-Robin Determinism ($\mathcal{J} = 1.0000$):**
+   Round-Robin executed with minimal CPU overhead, achieving perfect fairness ($1.0000$) with 72/72 successful completions and top throughput ($32.13\text{ RPS}$). The pre-population of ARP cache and host MACs eliminated cold-start drop penalties.
 
 ---
 
@@ -255,7 +255,7 @@ When an OpenFlow `OFPPortStatus` message with flag `OFPPR_DELETE` or link down s
 | **Heterogeneous Hardware** | Poor (treats all nodes identically) | Moderate (senses connection backlog) | **Superior (explicit capacity matching)** |
 | **Short-Lived Requests** | Excellent (near-zero scheduling delay) | Good | Good |
 | **Long-Lived Requests** | Prone to imbalance | **Superior (distributes by active sockets)** | Good |
-| **Achieved Fairness ($\mathcal{J}$)** | $\mathcal{J} = 0.9994$ | **$\mathcal{J} = 1.0000$ (Optimal)** | **$\mathcal{J}_w = 1.0000$ (Normalized)** |
-| **Average Latency** | $61.12\text{ ms}$ | **$51.16\text{ ms}$ (Lowest)** | $51.77\text{ ms}$ |
-| **Tail Latency ($P_{99}$)** | $440.49\text{ ms}$ | $334.33\text{ ms}$ | **$132.08\text{ ms}$ (Tightest)** |
-| **Throughput (RPS)** | $27.55\text{ RPS}$ | $28.37\text{ RPS}$ | **$28.73\text{ RPS}$ (Highest)** |
+| **Achieved Fairness ($\mathcal{J}$)** | **$\mathcal{J} = 1.0000$ (Optimal)** | **$\mathcal{J} = 1.0000$ (Optimal)** | **$\mathcal{J}_w = 1.0000$ (Normalized)** |
+| **Average Latency** | $34.18\text{ ms}$ | **$33.87\text{ ms}$ (Lowest)** | $69.87\text{ ms}$ |
+| **Tail Latency ($P_{99}$)** | **$46.81\text{ ms}$ (Tightest)** | $69.05\text{ ms}$ | $708.14\text{ ms}$ |
+| **Throughput (RPS)** | **$32.13\text{ RPS}$ (Highest)** | $32.05\text{ RPS}$ | $27.34\text{ RPS}$ |

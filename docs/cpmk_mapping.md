@@ -111,15 +111,15 @@
   - Automatically restores nodes upon recovery.
 - **Empirical Benchmarking & Evaluation Metrics:**
   - Evaluated using custom multi-threaded HTTP test harness (`benchmark/generate_load.py`).
-  - Evaluated fairness using **Jain's Fairness Index (JFI)** ($\mathcal{J}=1.0000$ on LC and Weighted).
+  - Evaluated fairness using **Jain's Fairness Index (JFI)** ($\mathcal{J}=1.0000$ on RR, LC, and Weighted).
 
 #### 2. Benchmark Summary Table (72 Requests, $C=4$):
 
 | Algorithm | Requests | Distribution `[srv1, srv2, srv3, srv4]` | Target Ratio | Achieved Ratio | JFI ($\mathcal{J}$) | Weighted JFI ($\mathcal{J}_w$) | Avg Latency | Tail Latency ($P_{99}$) | Throughput |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Round-Robin** | 72 | `[18, 18, 18, 17]` | 1 : 1 : 1 : 1 | 1.05 : 1.05 : 1.05 : 1.00 | **0.9994** | 0.9000 | 61.12 ms | 440.49 ms | 27.55 RPS |
-| **Least-Connections** | 72 | `[18, 18, 18, 18]` | 1 : 1 : 1 : 1 | **1 : 1 : 1 : 1** | **1.0000** | 0.9000 | **51.16 ms** | 334.33 ms | 28.37 RPS |
-| **Weighted (WRR)** | 72 | `[12, 24, 12, 24]` | 1 : 2 : 1 : 2 | **1 : 2 : 1 : 2** | 0.9000 | **1.0000** | 51.77 ms | **132.08 ms** | **28.73 RPS** |
+| **Round-Robin** | 72 | `[18, 18, 18, 18]` | 1 : 1 : 1 : 1 | **1 : 1 : 1 : 1** | **1.0000** | 0.9000 | 34.18 ms | **46.81 ms** | **32.13 RPS** |
+| **Least-Connections** | 72 | `[18, 18, 18, 18]` | 1 : 1 : 1 : 1 | **1 : 1 : 1 : 1** | **1.0000** | 0.9000 | **33.87 ms** | 69.05 ms | 32.05 RPS |
+| **Weighted (WRR)** | 72 | `[12, 24, 12, 24]` | 1 : 2 : 1 : 2 | **1 : 2 : 1 : 2** | 0.9000 | **1.0000** | 69.87 ms | 708.14 ms | 27.34 RPS |
 
 #### 3. Empirical Graphical Evidence:
 

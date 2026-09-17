@@ -22,7 +22,14 @@ sudo service openvswitch-switch status >/dev/null 2>&1 || {
     sudo service openvswitch-switch start
 }
 
-# 4. Install / verify Python requirements
+# 4. Patch Mininet clean.py to prevent 'sudo mn -c' from killing ryu-manager
+MININET_CLEAN_PY="/usr/lib/python3/dist-packages/mininet/clean.py"
+if [ -f "$MININET_CLEAN_PY" ] && grep -q "'ryu-manager'" "$MININET_CLEAN_PY" 2>/dev/null; then
+    echo "Patching Mininet clean.py to protect ryu-manager from 'mn -c' auto-termination..."
+    sudo sed -i "s/'ryu-manager'//g" "$MININET_CLEAN_PY"
+fi
+
+# 5. Install / verify Python requirements
 echo "Verifying Python dependencies in $VENV_PATH..."
 "$VENV_PATH/bin/pip" install --quiet -r requirements.txt
 

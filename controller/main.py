@@ -39,7 +39,7 @@ class SDNLoadBalancerApp(app_manager.RyuApp):
         super(SDNLoadBalancerApp, self).__init__(*args, **kwargs)
         self.name = 'sdn_load_balancer'
         self.topo = TopologyDiscovery()
-        self.lb = LoadBalancer()
+        self.lb = LoadBalancer(self)
 
         # MAC-to-port learning table: {dpid: {mac: port}}
         # Seed with static host-facing ports to prevent broadcast loops across diamond topology
@@ -110,6 +110,15 @@ class SDNLoadBalancerApp(app_manager.RyuApp):
         elif datapath.id == config.DPID_S1:
             for client_ip, cinfo in config.CLIENT_POOL.items():
                 self.mac_to_port[config.DPID_S1][cinfo["mac"]] = cinfo["s1_port"]
+
+            # 4. Proactive Priority 30 Proxy ARP rule for VIP on Ingress Switch s1
+            m_arp = parser.OFPMatch(
+                eth_type=0x0806,
+                arp_tpa=config.VIP
+            )
+            a_arp = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER, ofproto.OFPCML_NO_BUFFER)]
+            add_flow(datapath, config.PRIO_ARP, m_arp, a_arp)
+            self.logger.info("[OFP] Installed Proactive Priority 30 Proxy ARP rule for VIP %s on Switch s1", config.VIP)
 
         self.logger.info("[OFP] Switch connected and Table-Miss installed: DPID 0x%016x", datapath.id)
 

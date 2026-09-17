@@ -108,3 +108,16 @@
   - Mapping of all features to CPMK-1, CPMK-2, CPMK-3, CPMK-4, and CPMK-5
 - [x] Write `docs/final_report.md`:
   - Complete academic capstone report
+
+### Phase 6: Holistic System Audit & Synchronization `[x]`
+- [x] **Finding 1: Priority 30 Proxy ARP Flow Installation**: Added proactive Table 0 flow on `s1` (`config.DPID_S1`) for `eth_type=0x0806, arp_tpa=10.0.0.100` during `switch_features_handler`.
+- [x] **Finding 2: Health Prober Fail Limit Alignment**: Corrected `docs/system_architecture.md` to reflect `HEALTH_FAIL_LIMIT = 5` (5 consecutive missed probes).
+- [x] **Finding 3: Active Connection Eviction (`OFPFC_DELETE`)**: Implemented flow eviction across all datapaths in `load_balancer.py` (`update_health_status(b_id, False)`).
+- [x] **Finding 4: Adaptive TE Hysteresis Dampening**: Implemented 2-consecutive-polling-cycle check (`recovery_cycles >= 2`) before restoring `preferred_path = 'path_a'`.
+- [x] **Finding 5: `iperf_bench.sh` Service Port Alignment**: Updated default port from 5001 to 80 (`PORT="${2:-80}"`).
+- [x] **Finding 6: Switch `s4` Interface MAC Persistence**: Added `sudo ip link set dev s4 down` prior to `ip link set dev s4 address` in `lb_topology.py`.
+- [x] **Finding 7: Mininet `clean.py` Ryu Termination Guard**: Added automated patch in `setup_env.sh` and documented in `README.md`.
+- [x] **Finding 8: Benchmark Metrics Synchronization**: Harmonized Table 6.1 (`algorithms.md`), Table 5.1 (`final_report.md`), CPMK-5 table (`cpmk_mapping.md`), and `README.md` to 72/72 requests, $\mathcal{J}=1.0000$, and 32.13 RPS.
+- [x] **Finding 9: Repository Tree Completeness**: Added `scripts/run_test.sh` to the directory structure in `README.md`.
+- [x] **Finding 10: Dependencies Annotation**: Annotated `scapy` and `networkx` in `requirements.txt` as optional testing and prototyping utilities.
+- [x] **Verification**: All 3 test suites passed 100% (`test_vip_rewrite.py`, `test_lb_algorithms.py`, `test_failover.py`), and continuous daemons verified active (`sim_mode: false`).

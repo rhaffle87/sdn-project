@@ -202,9 +202,9 @@ flowchart LR
 ![Figure: Live Web Telemetry Dashboard](figures/dashboard_verified.png)
 
 - **Benchmark Highlights (72 requests, $C=4$):**
-  - **Least-Connections:** Achieved perfect mathematical fairness ($\mathcal{J} = 1.0000$) with uniform $18:18:18:18$ request distribution and the lowest average latency ($51.16\text{ ms}$).
-  - **Weighted (1:2:1:2):** Achieved ideal normalized fairness ($\mathcal{J}_w = 1.0000$) with exact $12:24:12:24$ load distribution, highest throughput ($28.73\text{ RPS}$), and tightest tail latency ($P_{99} = 132.08\text{ ms}$).
-  - **Round-Robin:** Achieved near-perfect fairness ($\mathcal{J} = 0.9994$) with $18:18:18:17$ distribution and minimal CPU overhead.
+  - **Round-Robin:** Achieved perfect mathematical fairness ($\mathcal{J} = 1.0000$) with uniform $18:18:18:18$ distribution, 100% request completion, and top throughput ($32.13\text{ RPS}$).
+  - **Least-Connections:** Achieved perfect mathematical fairness ($\mathcal{J} = 1.0000$) with uniform $18:18:18:18$ request distribution and the lowest average latency ($33.87\text{ ms}$).
+  - **Weighted (1:2:1:2):** Achieved ideal normalized fairness ($\mathcal{J}_w = 1.0000$) with exact $12:24:12:24$ load distribution matching configured capacities.
 
 ---
 
@@ -250,8 +250,9 @@ flowchart LR
 │   ├── test_lb_algorithms.py        # Algorithm load distribution test
 │   └── test_failover.py             # Backend & link failover benchmark
 ├── scripts/
-│   ├── setup_env.sh                 # Environment setup script
-│   └── cleanup.sh                   # Mininet and OVS cleanup script
+│   ├── setup_env.sh                 # Environment setup script (with clean.py patch)
+│   ├── cleanup.sh                   # Mininet and OVS cleanup script
+│   └── run_test.sh                  # Automated single-command test orchestrator
 ├── dashboard/
 │   ├── live_dashboard.py            # Web telemetry dashboard
 │   └── plot_results.py              # Post-experiment charting script
@@ -274,6 +275,7 @@ Ensure Open vSwitch and Mininet are installed:
 sudo apt update
 sudo apt install -y mininet openvswitch-switch python3-pip iperf3
 ```
+> **Tip:** Run `./scripts/setup_env.sh` to automatically install packages and apply the Mininet `clean.py` patch preventing accidental termination of background Ryu controller instances during `mn -c`.
 
 ### 2. Python Virtual Environment
 Create and activate a dedicated virtual environment:

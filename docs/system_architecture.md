@@ -207,7 +207,7 @@ flowchart LR
   - Layer 2/3 link liveliness (carrier detect) does not guarantee application health. If the Flask microservice experiences an unhandled exception or deadlock, the switch port remains UP, but users receive errors. Layer 7 probing is essential.
 - **Edge Cases & Failure Modes:**
   - *In-Band Probe Interference:* Probing requests from the controller host (`10.0.0.254`) must not be subjected to VIP NAT rewriting or load balancing loops. This is solved by installing `Priority 100` flow rules directly on `s4` that bypass NAT for host IP `10.0.0.254`.
-  - *Flapping / Intermittent Network Jitter:* Requiring 2 consecutive missed probes prevents false-positive evictions during brief latency spikes.
+  - *Flapping / Intermittent Network Jitter:* Requiring 5 consecutive missed probes (`HEALTH_FAIL_LIMIT = 5`) prevents false-positive evictions during brief latency spikes or heavy concurrent benchmarking bursts.
 - **Technical Rationale:**
   - Achieves sub-second failure detection and zero downtime for incoming sessions.
 

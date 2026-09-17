@@ -15,12 +15,13 @@ if PROJECT_ROOT not in sys.path:
 
 from ryu.ofproto import ofproto_v1_3
 from controller import config
-from controller.flow_manager import add_flow, send_arp_reply
+from controller.flow_manager import add_flow, delete_flow, send_arp_reply
 
 LOG = logging.getLogger("LoadBalancerEngine")
 
 class LoadBalancer:
-    def __init__(self):
+    def __init__(self, app=None):
+        self.app = app
         self.backends = copy.deepcopy(config.BACKEND_POOL)
         self.algorithm = config.DEFAULT_ALGORITHM
 
@@ -102,7 +103,7 @@ class LoadBalancer:
         return False
 
     def update_health_status(self, backend_id, is_healthy):
-        """Update health status of a backend."""
+        """Update health status of a backend and proactively evict stale flows on failure."""
         for b in self.backends:
             if b["id"] == backend_id:
                 if b["healthy"] != is_healthy:
@@ -110,6 +111,20 @@ class LoadBalancer:
                     self._rebuild_weighted_pool()
                     status_str = "UP" if is_healthy else "DOWN"
                     LOG.warning("[LB] Health state changed: Backend %s is now %s", backend_id, status_str)
+
+                    # Proactively evict active OpenFlow flows for dead backend via OFPFC_DELETE
+                    if not is_healthy and self.app and hasattr(self.app, 'topo'):
+                        target_ip = b["ip"]
+                        for dp in list(self.app.topo.datapaths.values()):
+                            p = dp.ofproto_parser
+                            # Evict forward NAT flows targeting this backend
+                            m_dst = p.OFPMatch(eth_type=0x0800, ip_proto=6, ipv4_dst=target_ip)
+                            delete_flow(dp, match=m_dst)
+                            # Evict reverse NAT flows originating from this backend
+                            m_src = p.OFPMatch(eth_type=0x0800, ip_proto=6, ipv4_src=target_ip)
+                            delete_flow(dp, match=m_src)
+                        LOG.warning("[LB] Proactively evicted active OpenFlow flows for dead backend %s (%s)",
+                                    backend_id, target_ip)
                 break
 
     def handle_arp(self, datapath, in_port, arp_pkt):

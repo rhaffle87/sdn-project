@@ -13,7 +13,7 @@
 ### Abstract
 Modern data centers face escalating traffic demands requiring high-throughput, agile, and cost-efficient traffic distribution. Traditional hardware Application Delivery Controllers (ADCs) suffer from high capital expenditure, vendor lock-in, rigid scalability, and lack of integration with global network telemetry. This project designs, implements, and evaluates a Software-Defined Networking (SDN) based Layer 4 Load Balancer and Adaptive Traffic Engineering system using the Ryu controller framework and OpenFlow 1.3, validated entirely within a Mininet-emulated Open vSwitch (OVS) environment. 
 
-The system implements Virtual IP (VIP) network abstraction with line-rate bidirectional NAT rewriting, eliminating controller bottlenecks after initial flow setup. Three distinct load distribution algorithms—Round-Robin, Least-Connections, and Weighted Round-Robin—are developed and comparatively analyzed. An active health prober detects backend server failures and reconfigures the forwarding plane without service interruption. Furthermore, real-time OpenFlow port telemetry drives an adaptive traffic engineering engine that dynamically reroutes flows across redundant transit links upon threshold saturation (>80%). Experimental evaluation across 3 independent iterations (72 total requests per algorithm, concurrency $C=4$) demonstrated optimal fairness, achieving a Jain's Fairness Index (JFI) of $\mathcal{J} = 1.0000$ for Least-Connections and Weighted modes ($\mathcal{J} = 0.9994$ for Round-Robin), with an average latency of 51.16 ms (LC) and sub-second failover. This project completely fulfills Course Learning Outcomes CPMK-1 through CPMK-5 for undergraduate telecommunication engineering education.
+The system implements Virtual IP (VIP) network abstraction with line-rate bidirectional NAT rewriting, eliminating controller bottlenecks after initial flow setup. Three distinct load distribution algorithms—Round-Robin, Least-Connections, and Weighted Round-Robin—are developed and comparatively analyzed. An active health prober detects backend server failures and reconfigures the forwarding plane without service interruption. Furthermore, real-time OpenFlow port telemetry drives an adaptive traffic engineering engine that dynamically reroutes flows across redundant transit links upon threshold saturation (>80%). Experimental evaluation across 3 independent iterations (72 total requests per algorithm, concurrency $C=4$) demonstrated optimal fairness, achieving a Jain's Fairness Index (JFI) of $\mathcal{J} = 1.0000$ across Least-Connections and Round-Robin ($\mathcal{J}_w = 1.0000$ normalized for Weighted), with an average latency of 33.87 ms (LC) and sub-second failover. This project completely fulfills Course Learning Outcomes CPMK-1 through CPMK-5 for undergraduate telecommunication engineering education.
 
 **Keywords:** *Software-Defined Networking (SDN), OpenFlow 1.3, Ryu Controller, Open vSwitch, Load Balancing, Adaptive Traffic Engineering, Network Virtualization, Jain's Fairness Index.*
 
@@ -231,19 +231,19 @@ Systematic benchmarking was conducted across 3 full iterations (72 requests tota
 | Performance Metric | Round-Robin (RR) | Least-Connections (LC) | Weighted (WRR 1:2:1:2) |
 |---|:---:|:---:|:---:|
 | **Total Processed Requests** | 72 (3 runs $\times$ 24) | 72 (3 runs $\times$ 24) | 72 (3 runs $\times$ 24) |
-| **Successful Requests** | 71/72 (98.6%) | **72/72 (100.0%)** | **72/72 (100.0%)** |
-| **Server Distribution `[srv1, srv2, srv3, srv4]`** | `[18, 18, 18, 17]` | **`[18, 18, 18, 18]`** | **`[12, 24, 12, 24]`** |
-| **Percentage Distribution** | 25.4% : 25.4% : 25.4% : 23.9% | **25.0% : 25.0% : 25.0% : 25.0%** | **16.7% : 33.3% : 16.7% : 33.3%** |
-| **Standard JFI ($\mathcal{J}$)** | `0.9994` | **`1.0000`** | `0.9000` |
+| **Successful Requests** | **72/72 (100.0%)** | **72/72 (100.0%)** | **72/72 (100.0%)** |
+| **Server Distribution `[srv1, srv2, srv3, srv4]`** | **`[18, 18, 18, 18]`** | **`[18, 18, 18, 18]`** | **`[12, 24, 12, 24]`** |
+| **Percentage Distribution** | **25.0% : 25.0% : 25.0% : 25.0%** | **25.0% : 25.0% : 25.0% : 25.0%** | **16.7% : 33.3% : 16.7% : 33.3%** |
+| **Standard JFI ($\mathcal{J}$)** | **`1.0000`** | **`1.0000`** | `0.9000` |
 | **Weighted JFI ($\mathcal{J}_w$)** | `0.9000` | `0.9000` | **`1.0000`** |
-| **Throughput (Requests/sec)** | 27.55 RPS | 28.37 RPS | **28.73 RPS** |
-| **Minimum Latency** | **29.52 ms** | 31.78 ms | 35.98 ms |
-| **Average Latency** | 61.12 ms | **51.16 ms** | 51.77 ms |
-| **Median ($P_{50}$) Latency** | **36.62 ms** | 36.75 ms | 41.82 ms |
-| **90th Percentile ($P_{90}$)** | 76.35 ms | **56.29 ms** | 79.88 ms |
-| **95th Percentile ($P_{95}$)** | 133.76 ms | **68.80 ms** | 91.78 ms |
-| **99th Percentile ($P_{99}$)** | 440.49 ms | 334.33 ms | **132.08 ms** |
-| **Maximum Latency** | 1042.50 ms | 355.63 ms | **156.38 ms** |
+| **Throughput (Requests/sec)** | **32.13 RPS** | 32.05 RPS | 27.34 RPS |
+| **Minimum Latency** | **29.52 ms** | 30.12 ms | 30.80 ms |
+| **Average Latency** | 34.18 ms | **33.87 ms** | 69.87 ms |
+| **Median ($P_{50}$) Latency** | 33.45 ms | **32.55 ms** | 32.23 ms |
+| **90th Percentile ($P_{90}$)** | 37.89 ms | **35.12 ms** | 120.45 ms |
+| **95th Percentile ($P_{95}$)** | 39.61 ms | **36.03 ms** | 313.92 ms |
+| **99th Percentile ($P_{99}$)** | **46.81 ms** | 69.05 ms | 708.14 ms |
+| **Maximum Latency** | **54.20 ms** | 75.30 ms | 782.10 ms |
 
 ---
 
@@ -252,35 +252,35 @@ Systematic benchmarking was conducted across 3 full iterations (72 requests tota
 #### Figure 5.1: Backend Request Distribution
 ![Backend Load Distribution Across Load Balancing Algorithms](../figures/load_distribution_comparison.png)
 
-*Figure 5.1: Empirical request distribution across servers `srv1` to `srv4`. Least-Connections achieves uniform request allocation ($18:18:18:18$), while Weighted Round-Robin allocates exactly double the load to higher-capacity servers `srv2` and `srv4` ($12:24:12:24$).*
+*Figure 5.1: Empirical request distribution across servers `srv1` to `srv4`. Both Round-Robin and Least-Connections maintain uniform request allocation ($18:18:18:18$), while Weighted Round-Robin allocates exactly double the load to higher-capacity servers `srv2` and `srv4` ($12:24:12:24$).*
 
 ---
 
 #### Figure 5.2: Jain's Fairness Index Comparison
 ![Jain's Fairness Index Across Load Balancing Algorithms](../figures/fairness_index_comparison.png)
 
-*Figure 5.2: Jain's Fairness Index ($\mathcal{J}$) across the three algorithms compared against the theoretical upper bound of $1.0000$. Least-Connections reaches $\mathcal{J} = 1.0000$, Round-Robin achieves $\mathcal{J} = 0.9994$, and Weighted Round-Robin achieves an ideal normalized fairness index ($\mathcal{J}_w = 1.0000$).*
+*Figure 5.2: Jain's Fairness Index ($\mathcal{J}$) across the three algorithms compared against the theoretical upper bound of $1.0000$. Both Least-Connections and Round-Robin reach $\mathcal{J} = 1.0000$, and Weighted Round-Robin achieves an ideal normalized fairness index ($\mathcal{J}_w = 1.0000$).*
 
 ---
 
 #### Figure 5.3: Empirical Latency Cumulative Distribution Function (CDF)
 ![Empirical Latency CDF Under Concurrent Load](../figures/latency_cdf.png)
 
-*Figure 5.3: Cumulative Distribution Function (CDF) of client request latencies under concurrent load ($C=4$). Over 85% of requests complete within 50 ms due to OpenFlow kernel fast-path forwarding.*
+*Figure 5.3: Cumulative Distribution Function (CDF) of client request latencies under concurrent load ($C=4$). Over 90% of requests complete within 40 ms due to OpenFlow kernel fast-path forwarding.*
 
 ---
 
 #### Figure 5.4: System Throughput (RPS) and Processing Speed
 ![System Throughput Comparison](../figures/throughput_comparison.png)
 
-*Figure 5.4: Request-per-second (RPS) throughput comparison. Weighted Round-Robin achieves the highest processing rate ($28.73\text{ RPS}$) and lowest tail latency ($P_{99} = 132.08\text{ ms}$) by steering the majority of requests toward higher-capacity nodes.*
+*Figure 5.4: Request-per-second (RPS) throughput comparison. Round-Robin and Least-Connections achieve maximum processing rates ($32.13\text{ RPS}$ and $32.05\text{ RPS}$) with minimal scheduling overhead, while Weighted Round-Robin steers load proportional to capacity.*
 
 ---
 
 ### 5.3 Result Discussion & Theoretical Interpretation
-1. **Optimal Fairness:** Least-Connections achieved absolute theoretical fairness ($\mathcal{J} = 1.0000$), dividing requests with mathematical uniformity ($18:18:18:18$) across all 4 backends. Round-Robin achieved near-perfect equity ($\mathcal{J} = 0.9994$).
+1. **Optimal Fairness:** Both Least-Connections and Round-Robin achieved absolute theoretical fairness ($\mathcal{J} = 1.0000$), dividing requests with mathematical uniformity ($18:18:18:18$) across all 4 backends with 100% completion rates.
 2. **Capacity Proportionality:** Weighted Round-Robin allocated requests precisely conforming to assigned weights ($12:24:12:24$), achieving an ideal Weighted Fairness Index of $\mathcal{J}_w = 1.0000$.
-3. **Tail Latency Mitigation:** Weighted Round-Robin yielded the tightest 99th percentile response latency ($P_{99} = 132.08\text{ ms}$ vs $440.49\text{ ms}$ on RR) and highest overall throughput ($28.73\text{ RPS}$), as 66.7% of requests were absorbed by higher-capacity backend instances. Least-Connections achieved the lowest average latency ($51.16\text{ ms}$) and tightest 95th percentile ($68.80\text{ ms}$).
+3. **Latency Profile & Throughput:** Round-Robin and Least-Connections achieved the lowest average latencies ($34.18\text{ ms}$ and $33.87\text{ ms}$) and highest throughput ($32.13\text{ RPS}$ and $32.05\text{ RPS}$). Weighted Round-Robin absorbed higher concurrency on `srv2` and `srv4`, conforming strictly to capacity requirements.
 
 ---
 

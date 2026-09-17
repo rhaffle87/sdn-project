@@ -19,6 +19,7 @@ class TrafficEngineer:
         self.te_enabled = True
         self.manual_override = None  # None = Dynamic Adaptive TE, or 'path_a', 'path_b'
         self.last_reroute_reason = "Initial Default: Path A (Adaptive TE)"
+        self.recovery_cycles = 0     # Hysteresis consecutive cycle counter
         self.te_thread = hub.spawn(self._te_loop)
 
     def _te_loop(self):
@@ -32,6 +33,7 @@ class TrafficEngineer:
     def _evaluate_link_congestion(self):
         """
         Evaluate link utilization from StatsMonitor and apply rerouting policy.
+        Enforces 2-cycle hysteresis damping before restoring primary Path A.
         """
         link_stats = self.app.stats.get_link_utilization()
         path_a_ratio = link_stats["path_a"]["ratio"]
@@ -40,6 +42,7 @@ class TrafficEngineer:
 
         # If a manual operator lock is active, honor it (unless the link is down)
         if self.manual_override:
+            self.recovery_cycles = 0
             if not self.app.topo.is_path_available(self.manual_override):
                 alt = "path_a" if self.manual_override == "path_b" else "path_b"
                 if self.app.topo.is_path_available(alt):
@@ -51,21 +54,27 @@ class TrafficEngineer:
                 self.app.preferred_path = self.manual_override
             return
 
-        # Case 1: Primary Path A congested (> threshold) and Path B is available
+        # Case 1: Primary Path A congested (>= threshold) and Path B is available
         if path_a_ratio >= config.TE_THRESHOLD_RATIO and path_b_ratio < path_a_ratio:
+            self.recovery_cycles = 0
             if current_path != "path_b" and self.app.topo.is_path_available("path_b"):
                 self.app.preferred_path = "path_b"
                 self.last_reroute_reason = (f"Congestion on Path A ({path_a_ratio*100:.1f}% >= "
                                            f"{config.TE_THRESHOLD_RATIO*100:.1f}%). Rerouted to Path B.")
                 LOG.warning("[TE] *** ADAPTIVE REROUTING TRIGGERED *** %s", self.last_reroute_reason)
 
-        # Case 2: Path A has cooled down below 50% utilization (Hysteresis)
+        # Case 2: Path A has cooled down below 50% utilization (Hysteresis with 2 consecutive cycles)
         elif path_a_ratio < 0.50 and current_path == "path_b":
-            if self.app.topo.is_path_available("path_a"):
-                self.app.preferred_path = "path_a"
-                self.last_reroute_reason = (f"Path A recovered ({path_a_ratio*100:.1f}% < 50%). "
-                                           f"Restored Path A preference.")
-                LOG.info("[TE] *** RESTORING PRIMARY PATH *** %s", self.last_reroute_reason)
+            self.recovery_cycles += 1
+            if self.recovery_cycles >= 2:
+                if self.app.topo.is_path_available("path_a"):
+                    self.app.preferred_path = "path_a"
+                    self.last_reroute_reason = (f"Path A recovered ({path_a_ratio*100:.1f}% < 50% for 2 consecutive cycles). "
+                                               f"Restored Path A preference.")
+                    LOG.info("[TE] *** RESTORING PRIMARY PATH *** %s", self.last_reroute_reason)
+                self.recovery_cycles = 0
+        else:
+            self.recovery_cycles = 0
 
     def force_path(self, path_name):
         """Manually force traffic preference to path_a, path_b, or resume auto."""
