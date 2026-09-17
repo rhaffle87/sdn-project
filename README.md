@@ -164,7 +164,7 @@ flowchart LR
 - **Mechanism:** Ryu installs symmetric flow rules across the ingress, transit, and egress switches:
   - **Forward Rule (s1, Priority 50):** Rewrites `ipv4_dst` from VIP `10.0.0.100` to the real backend IP (`10.0.0.11-14`) and `eth_dst` to backend MAC.
   - **Reverse Rule (s1, Priority 40):** Rewrites `ipv4_src` from backend IP back to `10.0.0.100` and `eth_src` back to `00:00:00:00:00:fe`.
-- **Reasoning & Rationale:** TCP sockets are bound to the client-selected 4-tuple $(\text{src\_ip}, \text{src\_port}, \text{dst\_ip}, \text{dst\_port})$. If a backend replies with its real IP, the client kernel immediately drops the packet and responds with a TCP RST.
+- **Reasoning & Rationale:** TCP sockets are bound to the client-selected 4-tuple $(\text{src\_ip}$, $\text{src\_port}$, $\text{dst\_ip}$, $\text{dst\_port})$. If a backend replies with its real IP, the client kernel immediately drops the packet and responds with a TCP RST.
 - **Edge Case Prevention:**
   - *SYN Forwarding Race:* To prevent dropping the initial SYN packet while `FlowMod` messages are propagating to OVS, Ryu simultaneously injects the rewritten SYN packet along the chosen transit path via `send_packet_out`.
 

@@ -205,6 +205,8 @@ sequenceDiagram
 2. **Adaptive Traffic Engineering (`TrafficEngineer`):**
    - Periodically queries switch port stats (`OFPPortStatsRequest`).
    - Computes delta transmit/receive bytes over polling interval $\Delta t$:
+
      $$\text{Throughput (bps)} = \frac{(B_t - B_{t-\Delta t}) \times 8}{\Delta t}$$
+     
      $$\text{Utilization (\%)} = \frac{\text{Throughput}}{\text{Link Capacity (10 Mbps)}} \times 100$$
    - When the primary transit path ($s1 \leftrightarrow s2 \leftrightarrow s4$) exceeds 80% link capacity, the controller redirects new and elephant flows across the alternate path ($s1 \leftrightarrow s3 \leftrightarrow s4$).

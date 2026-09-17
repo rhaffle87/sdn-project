@@ -14,8 +14,11 @@ The Ryu SDN Controller provides three distinct Layer 4 load balancing algorithms
 Round-Robin distributes incoming TCP client connections cyclically across the healthy backend pool without consideration of current server workload, CPU usage, or connection longevity.
 
 ### Mathematical Formulation
+
 Let $B = [b_0, b_1, \dots, b_{n-1}]$ represent the ordered set of $n$ healthy backend servers. For the $k$-th incoming TCP connection request ($k \ge 0$):
+
 $$\text{Selected Server Index } i = k \pmod n$$
+
 where $k$ increments by 1 for each new connection dispatch.
 
 ### Pseudocode
@@ -124,6 +127,7 @@ $$\mathcal{J}(x_1, x_2, \dots, x_n) = \frac{\left(\sum_{i=1}^n x_i\right)^2}{n \
 For Weighted load balancing, the standard JFI penalizes intentional asymmetry. Therefore, we evaluate equity using the **Weighted Jain's Fairness Index**, which normalizes allocated requests $x_i$ against target weights $w_i$:
 
 $$y_i = \frac{x_i}{w_i}$$
+
 $$\mathcal{J}_w(x_1, \dots, x_n; w_1, \dots, w_n) = \frac{\left(\sum_{i=1}^n y_i\right)^2}{n \cdot \sum_{i=1}^n y_i^2}$$
 
 When the allocation matches the configured weights ($x_i \propto w_i$), $y_1 = y_2 = \dots = y_n$, resulting in $\mathcal{J}_w = 1.0000$.
@@ -158,7 +162,9 @@ Each link is constrained to a bandwidth capacity of $C = 10\text{ Mbps}$.
 
 ### 7.2 Utilization Detection & Hysteresis
 The controller continuously polls OpenFlow port counters every interval $T = 5\text{ seconds}$:
+
 $$\Delta \text{tx\_bytes} = \text{tx\_bytes}_t - \text{tx\_bytes}_{t-T}$$
+
 $$\text{Current Utilization } U = \frac{\Delta \text{tx\_bytes} \times 8}{T \times C} \times 100\%$$
 
 #### Rerouting Rules:
