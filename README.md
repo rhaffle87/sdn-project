@@ -271,58 +271,468 @@ flowchart LR
 
 ---
 
-## 🚀 Getting Started
+## 🚀 End-to-End Operational Guide (WSL2 & Windows PowerShell)
 
-### 1. Prerequisites (WSL2 / Ubuntu 22.04 LTS)
-Ensure Open vSwitch and Mininet are installed:
+This guide provides a comprehensive, step-by-step operational workflow for running, testing, and benchmarking the SDN Load Balancer and Traffic Engineering platform. Every step includes dual-track command examples:
+- 🐧 **Native WSL2 Terminal (Ubuntu 22.04 LTS Bash)**: For running directly inside an interactive WSL2 shell.
+- 🪟 **Windows PowerShell (`wsl` CLI)**: For executing commands directly from Windows PowerShell without switching into an interactive Linux session.
+
+---
+
+### 🖥️ Architecture & Terminal Coordination
+
+In a Software-Defined Network, the centralized control plane is physically separated from data plane forwarding. To observe real-time packet processing, telemetry, and live failover, standard operation coordinates four logical terminal roles:
+
+| Terminal / Role | Component | Network Endpoints | Primary Function |
+| :--- | :--- | :--- | :--- |
+| **Terminal 1** | **Ryu SDN Controller** | `0.0.0.0:6653` (OpenFlow 1.3)<br>`0.0.0.0:8080` (WSGI REST API) | Runs event loops, installs flow tables, tracks active TCP connections, and calculates port telemetry. |
+| **Terminal 2** | **Mininet Data Plane** | OVS Switches `s1`–`s4`<br>Hosts `h1`–`h2`, `s1_srv`–`s4_srv` | Emulates diamond topology, runs 4 background Flask HTTP servers (`:80`), and exposes the interactive `mininet>` CLI. |
+| **Terminal 3** | **Live Telemetry Dashboard** | `http://localhost:8081` (Flask Web UI) | Enterprise operations console displaying live topology, bandwidth gauges, JFI fairness meter, and server health. |
+| **Terminal 4** | **Experimenter Console** | CLI Probes / REST Client | Injects HTTP traffic, triggers runtime algorithm changes, injects link congestion, and executes benchmark scripts. |
+
+> 💡 **Environment & Path Mapping Reference:**
+> - **Windows Host Path:** `E:\Projects\sdn-project`
+> - **WSL2 Mount Path:** `/mnt/e/Projects/sdn-project`
+> - **Python Virtualenv:** `~/sdn-venv` (or `/home/<username>/sdn-venv`)
+> - **Localhost Port Binding:** WSL2 automatically forwards ports `6653`, `8080`, and `8081` to the Windows host, allowing direct browser access to `http://localhost:8081`.
+
+---
+
+### 📋 Step 1: System Prerequisites & Environment Setup
+
+Ensure your WSL2 environment has the required Open vSwitch kernel modules, Mininet packages, and Python build dependencies.
+
+#### 1.1 Check WSL2 Version
+Open **Windows PowerShell** and confirm your Ubuntu distribution is running WSL Version 2:
+```powershell
+wsl -l -v
+```
+*(If your distribution indicates Version 1, upgrade with: `wsl --set-version Ubuntu-22.04 2`)*
+
+#### 1.2 Install Required System Packages
+Install Mininet, Open vSwitch, Python pip, virtual environment tools, and iperf3:
+
+**🐧 Native WSL2 Terminal (Bash):**
 ```bash
 sudo apt update
-sudo apt install -y mininet openvswitch-switch python3-pip iperf3
-```
-> **Tip:** Run `./scripts/setup_env.sh` to automatically install packages and apply the Mininet `clean.py` patch preventing accidental termination of background Ryu controller instances during `mn -c`.
-
-### 2. Python Virtual Environment
-Create and activate a dedicated virtual environment:
-```bash
-python3 -m venv sdn-venv
-source sdn-venv/bin/activate
-pip install -r requirements.txt
+sudo apt install -y mininet openvswitch-switch python3-pip python3-venv iperf3
 ```
 
-### 3. Launching the Controller
-Start the modular Ryu controller with OpenFlow 1.3 listening on port 6653:
+**🪟 Windows PowerShell (`wsl`):**
+```powershell
+wsl -u root apt update
+wsl -u root apt install -y mininet openvswitch-switch python3-pip python3-venv iperf3
+```
+
+#### 1.3 Run Environment Setup & Mininet Patch
+Execute [`./scripts/setup_env.sh`](scripts/setup_env.sh). This automated script:
+1. Verifies that `mn`, `ovs-vsctl`, and `iperf3` are installed.
+2. Ensures the `openvswitch-switch` daemon is active.
+3. **Patches `/usr/lib/python3/dist-packages/mininet/clean.py`** to protect `ryu-manager` from accidental termination during `sudo mn -c`.
+4. Creates a Python virtual environment at `~/sdn-venv` and installs all packages from [`requirements.txt`](requirements.txt).
+5. Runs an import smoke test across `ryu`, `mininet`, `scapy`, `flask`, `matplotlib`, and `networkx`.
+
+**🐧 Native WSL2 Terminal (Bash):**
 ```bash
+cd /mnt/e/Projects/sdn-project
+chmod +x scripts/*.sh
+./scripts/setup_env.sh
+```
+
+**🪟 Windows PowerShell (`wsl`):**
+```powershell
+wsl -e bash -c "cd /mnt/e/Projects/sdn-project && chmod +x scripts/*.sh && ./scripts/setup_env.sh"
+```
+
+#### 1.4 Verify Open vSwitch Service Status
+Ensure the Open vSwitch switch daemon is active:
+
+**🐧 Native WSL2 Terminal (Bash):**
+```bash
+sudo service openvswitch-switch status
+```
+
+**🪟 Windows PowerShell (`wsl`):**
+```powershell
+wsl -u root service openvswitch-switch status
+```
+*(If the service is stopped, start it via `sudo service openvswitch-switch start` or `wsl -u root service openvswitch-switch start`.)*
+
+---
+
+### 🧪 Step 2: Automated Pre-Flight Test Suite
+
+Before launching interactive daemons, execute the automated test runner to verify core OpenFlow 1.3 pipeline mechanics.
+
+The helper script [`./scripts/run_test.sh`](scripts/run_test.sh) is completely self-contained:
+1. Resets stale OVS bridges and cleans Mininet state via `./scripts/cleanup.sh`.
+2. Starts Ryu in the background on port `6653`.
+3. Waits until port `6653` is actively accepting TCP connections.
+4. Executes the target test suite under `sudo`.
+5. Gracefully terminates Ryu and cleans up on completion.
+
+#### 2.1 Run Test 1: VIP NAT & L2/L3 Bidirectional Rewriting
+Verifies ARP resolution for VIP (`10.0.0.100`), reactive Flow-Mod installation, client-to-backend IP/MAC rewrite, and reverse translation.
+
+**🐧 Native WSL2 Terminal (Bash):**
+```bash
+cd /mnt/e/Projects/sdn-project
+./scripts/run_test.sh tests/test_vip_rewrite.py
+```
+
+**🪟 Windows PowerShell (`wsl`):**
+```powershell
+wsl -e bash -c "cd /mnt/e/Projects/sdn-project && ./scripts/run_test.sh tests/test_vip_rewrite.py"
+```
+
+#### 2.2 Run Test 2: Multi-Algorithm Load Distribution
+Validates request distribution and mathematical fairness for Round-Robin, Least-Connections, and Weighted (1:2:1:2) policies.
+
+**🐧 Native WSL2 Terminal (Bash):**
+```bash
+cd /mnt/e/Projects/sdn-project
+./scripts/run_test.sh tests/test_lb_algorithms.py
+```
+
+**🪟 Windows PowerShell (`wsl`):**
+```powershell
+wsl -e bash -c "cd /mnt/e/Projects/sdn-project && ./scripts/run_test.sh tests/test_lb_algorithms.py"
+```
+
+#### 2.3 Run Test 3: Backend & Link Failover Recovery
+Validates sub-second failover when a backend server goes down and adaptive rerouting when core links fail.
+
+**🐧 Native WSL2 Terminal (Bash):**
+```bash
+cd /mnt/e/Projects/sdn-project
+./scripts/run_test.sh tests/test_failover.py
+```
+
+**🪟 Windows PowerShell (`wsl`):**
+```powershell
+wsl -e bash -c "cd /mnt/e/Projects/sdn-project && ./scripts/run_test.sh tests/test_failover.py"
+```
+
+---
+
+### 🚀 Step 3: Launching the Full Production Stack (Interactive End-to-End)
+
+To observe real-time SDN load balancing, traffic engineering, and live web telemetry, open **three terminal tabs**:
+
+```
+┌─────────────────────────────────┐   ┌─────────────────────────────────┐
+│  TERMINAL 1: Ryu Controller     │   │  TERMINAL 2: Mininet Topology   │
+│  Port 6653 (OFP) & 8080 (REST)  │   │  OVS Switches + 4 HTTP Backends │
+└─────────────────────────────────┘   └─────────────────────────────────┘
+                 │                                     │
+                 ▼                                     ▼
+┌─────────────────────────────────┐   ┌─────────────────────────────────┐
+│  TERMINAL 3: Telemetry Dashboard│   │  TERMINAL 4: Experimenter / CLI │
+│  http://localhost:8081 (Flask)  │   │  curl, REST API, Benchmarks     │
+└─────────────────────────────────┘   └─────────────────────────────────┘
+```
+
+#### 3.1 Terminal 1: Launch Ryu SDN Controller
+Starts the Ryu controller application on OpenFlow port `6653` and WSGI REST API on port `8080`:
+
+**🐧 Native WSL2 Terminal (Bash):**
+```bash
+cd /mnt/e/Projects/sdn-project
+source ~/sdn-venv/bin/activate
 ryu-manager controller/main.py --ofp-tcp-listen-port 6653
 ```
 
-### 4. Launching Mininet Topology
-In a second terminal, clean up any previous sessions and launch the topology:
+**🪟 Windows PowerShell (`wsl`):**
+```powershell
+wsl -e bash -c "cd /mnt/e/Projects/sdn-project && source ~/sdn-venv/bin/activate && ryu-manager controller/main.py --ofp-tcp-listen-port 6653"
+```
+
+*Expected startup logs:*
+```
+[INFO] Loading app controller.main
+[INFO] [RyuApp] SDN Load Balancer & Traffic Engineering Controller Initializing...
+[INFO] [RyuApp] VIP: 10.0.0.100 (00:00:00:00:00:fe), Port: 80
+[INFO] (WSGI) serving on http://0.0.0.0:8080
+```
+
+---
+
+#### 3.2 Terminal 2: Launch Mininet Diamond Mesh Topology
+Cleans any stale network namespaces and starts the Mininet topology (4 OVS switches `s1`–`s4`, 2 clients `h1`–`h2`, and 4 backend servers `s1_srv`–`s4_srv`):
+
+**🐧 Native WSL2 Terminal (Bash):**
 ```bash
+cd /mnt/e/Projects/sdn-project
 sudo mn -c
 sudo $(which python3) topology/lb_topology.py
 ```
 
-### 5. Running Verification Tests
-```bash
-# Automated single-command test runner (cleans OVS, starts Ryu, awaits port 6653, and executes test):
-./scripts/run_test.sh tests/test_vip_rewrite.py
-./scripts/run_test.sh tests/test_lb_algorithms.py
-./scripts/run_test.sh tests/test_failover.py
+**🪟 Windows PowerShell (`wsl`):**
+```powershell
+wsl -e bash -c "cd /mnt/e/Projects/sdn-project && sudo mn -c && sudo /home/$USER/sdn-venv/bin/python3 topology/lb_topology.py"
 ```
 
-### 6. Launching Live Web Dashboard
+*Expected events:*
+1. Terminal 2 displays the topology banner and enters the interactive `mininet>` prompt.
+2. Terminal 1 logs switch handshakes: `[Switch s1-s4 connected] Table-miss flow installed`.
+3. 4 background Flask HTTP backend servers are automatically spawned on `10.0.0.11`–`10.0.0.14:80`.
+
+> **Note (Headless / Daemon Mode):** If you wish to run Mininet in daemon mode without an interactive CLI, pass `--no-cli`:
+> ```powershell
+> wsl -e bash -c "cd /mnt/e/Projects/sdn-project && sudo /home/$USER/sdn-venv/bin/python3 topology/lb_topology.py --no-cli"
+> ```
+
+---
+
+#### 3.3 Terminal 3: Launch Live Telemetry Web Dashboard
+Starts the real-time Flask operations console on port `8081`:
+
+**🐧 Native WSL2 Terminal (Bash):**
 ```bash
-# In a third terminal (with Ryu controller running):
+cd /mnt/e/Projects/sdn-project
+source ~/sdn-venv/bin/activate
 python3 dashboard/live_dashboard.py
-# Access dashboard at: http://localhost:8081
 ```
 
-### 7. Running Full Benchmark Suite & Chart Generation
-```bash
-# Execute automated multi-algorithm benchmarks (24 requests x 3 algorithms)
-sudo $(which python3) benchmark/run_all_benchmarks.py
+**🪟 Windows PowerShell (`wsl`):**
+```powershell
+wsl -e bash -c "cd /mnt/e/Projects/sdn-project && source ~/sdn-venv/bin/activate && python3 dashboard/live_dashboard.py"
+```
 
-# Re-generate scientific figures in figures/ directory
+*Accessing the Dashboard:*
+Open your web browser on Windows (Chrome, Edge, Firefox) and navigate to:
+👉 **`http://localhost:8081`**
+
+The dashboard provides a complete NOC-grade operations interface:
+- **Topology & Health Map:** Real-time visual status of `s1_srv` through `s4_srv`.
+- **Active LB Algorithm Selector:** Switch dynamically between Round-Robin, Least-Connections, and Weighted.
+- **Dynamic Link Telemetry:** Live bandwidth gauges comparing Upper Path A (`s1` $\leftrightarrow$ `s2` $\leftrightarrow$ `s4`) and Lower Path B (`s1` $\leftrightarrow$ `s3` $\leftrightarrow$ `s4`).
+- **Jain's Fairness Index Meter:** Real-time mathematical fairness quantification updated every second.
+
+---
+
+### 🕹️ Step 4: Live Probing, Testing & Dynamic Control (Terminal 4)
+
+With the platform running, open a fourth terminal (or use the Mininet CLI in Terminal 2) to probe the data plane and interact with the controller.
+
+#### 4.1 Dispatch HTTP Requests from Mininet Host (`h1`)
+From the Mininet CLI in Terminal 2:
+
+```bash
+# Send a single request to the Virtual IP
+mininet> h1 curl -s http://10.0.0.100/
+
+# Dispatch a batch of 8 requests to observe load balancing across backends
+mininet> h1 for i in {1..8}; do curl -s http://10.0.0.100/; echo ""; done
+
+# Verify ICMP connectivity and baseline round-trip time
+mininet> h1 ping -c 3 10.0.0.100
+```
+
+#### 4.2 Inspect OpenFlow 1.3 Flow Tables
+Inspect the flow table rules installed reactively by Ryu on the ingress switch (`s1`):
+
+**🐧 Native WSL2 Terminal (Bash):**
+```bash
+sudo ovs-ofctl -O OpenFlow13 dump-flows s1
+```
+
+**🪟 Windows PowerShell (`wsl`):**
+```powershell
+wsl -u root ovs-ofctl -O OpenFlow13 dump-flows s1
+```
+*(Notice the Priority 50 forward NAT rule rewriting `nw_dst=10.0.0.100` $\to$ `10.0.0.1X` and Priority 40 reverse rule rewriting `nw_src=10.0.0.1X` $\to$ `10.0.0.100`.)*
+
+#### 4.3 Query Real-Time Telemetry via REST API
+Query the Ryu REST API (`port 8080`) directly from Windows PowerShell:
+
+**🪟 Windows PowerShell:**
+```powershell
+Invoke-RestMethod -Uri "http://localhost:8080/api/telemetry" | ConvertTo-Json -Depth 4
+```
+
+**🐧 Native WSL2 Terminal (Bash):**
+```bash
+curl -s http://localhost:8080/api/telemetry | jq .
+```
+
+#### 4.4 Dynamically Switch Load Balancing Algorithms at Runtime
+Switch algorithms on-the-fly without restarting controller or switches:
+
+**Switch to Least-Connections:**
+- **🪟 PowerShell:**
+  ```powershell
+  Invoke-RestMethod -Uri "http://localhost:8080/api/algorithm" -Method Post -ContentType "application/json" -Body '{"algorithm": "least_connections"}'
+  ```
+- **🐧 WSL Bash:**
+  ```bash
+  curl -X POST http://localhost:8080/api/algorithm -H "Content-Type: application/json" -d '{"algorithm": "least_connections"}'
+  ```
+
+**Switch to Weighted Load Balancing (1:2:1:2):**
+- **🪟 PowerShell:**
+  ```powershell
+  Invoke-RestMethod -Uri "http://localhost:8080/api/algorithm" -Method Post -ContentType "application/json" -Body '{"algorithm": "weighted"}'
+  ```
+- **🐧 WSL Bash:**
+  ```bash
+  curl -X POST http://localhost:8080/api/algorithm -H "Content-Type: application/json" -d '{"algorithm": "weighted"}'
+  ```
+
+#### 4.5 Simulate Backend Server Failure & Sub-Second Failover
+Mark backend `srv1` (`10.0.0.11`) as DOWN via the REST API to trigger active failover:
+
+**🪟 Windows PowerShell:**
+```powershell
+# Take srv1 offline:
+Invoke-RestMethod -Uri "http://localhost:8080/api/backend/health" -Method Post -ContentType "application/json" -Body '{"backend_id": 0, "healthy": false}'
+```
+
+**🐧 Native WSL2 Terminal (Bash):**
+```bash
+# Take srv1 offline:
+curl -X POST http://localhost:8080/api/backend/health -H "Content-Type: application/json" -d '{"backend_id": 0, "healthy": false}'
+```
+
+*Verification:*
+1. Check the Web Dashboard: `srv1` immediately switches to **DEAD** (red indicator).
+2. Execute a loop of requests from `h1` in Mininet:
+   ```bash
+   mininet> h1 for i in {1..6}; do curl -s http://10.0.0.100/; echo ""; done
+   ```
+   All requests are distributed exclusively among healthy backends (`srv2`, `srv3`, `srv4`) with **0% packet loss**!
+3. Restore `srv1` back online:
+   ```powershell
+   Invoke-RestMethod -Uri "http://localhost:8080/api/backend/health" -Method Post -ContentType "application/json" -Body '{"backend_id": 0, "healthy": true}'
+   ```
+
+#### 4.6 Simulate Traffic Congestion & Adaptive Rerouting
+Generate high-concurrency traffic to Upper Path A using [`benchmark/generate_load.py`](benchmark/generate_load.py):
+
+**🐧 Native WSL2 Terminal (Bash):**
+```bash
+cd /mnt/e/Projects/sdn-project
+source ~/sdn-venv/bin/activate
+python3 benchmark/generate_load.py --requests 60 --concurrency 6
+```
+
+**🪟 Windows PowerShell (`wsl`):**
+```powershell
+wsl -e bash -c "cd /mnt/e/Projects/sdn-project && source ~/sdn-venv/bin/activate && python3 benchmark/generate_load.py --requests 60 --concurrency 6"
+```
+
+*Observe on Dashboard & Terminal 1:*
+- Path A bandwidth crosses the **80% threshold ratio**.
+- Terminal 1 logs: `[TE] *** ADAPTIVE REROUTING TRIGGERED *** Congestion on Path A. Rerouted to Path B.`
+- New flows automatically route through Transit Switch `s3` (Lower Path B).
+- When Path A traffic drops below **50% for 2 consecutive cycles**, the controller seamlessly restores primary routing.
+
+---
+
+### 📊 Step 5: Full Benchmark Suite & Scientific Chart Generation
+
+To run the full comparative benchmark (72 requests per algorithm, measuring RPS, Latency CDF, and Jain's Fairness Index) and automatically generate publication-ready plots:
+
+#### 5.1 Run Automated Benchmark Orchestrator
+Ensure Ryu controller is running in Terminal 1, then execute:
+
+**🐧 Native WSL2 Terminal (Bash):**
+```bash
+cd /mnt/e/Projects/sdn-project
+sudo mn -c
+sudo /home/$USER/sdn-venv/bin/python3 benchmark/run_all_benchmarks.py
+```
+
+**🪟 Windows PowerShell (`wsl`):**
+```powershell
+wsl -e bash -c "cd /mnt/e/Projects/sdn-project && sudo mn -c && sudo /home/$USER/sdn-venv/bin/python3 benchmark/run_all_benchmarks.py"
+```
+
+*Expected outputs:*
+- Structured evaluation metrics saved to `benchmark/results/summary_metrics.json`.
+- Automatic execution of `dashboard/plot_results.py`.
+
+#### 5.2 Standalone Plot Regeneration
+To re-generate all scientific figures from existing benchmark data at any time:
+
+**🐧 Native WSL2 Terminal (Bash):**
+```bash
+cd /mnt/e/Projects/sdn-project
+source ~/sdn-venv/bin/activate
 python3 dashboard/plot_results.py
 ```
+
+**🪟 Windows PowerShell (`wsl`):**
+```powershell
+wsl -e bash -c "cd /mnt/e/Projects/sdn-project && source ~/sdn-venv/bin/activate && python3 dashboard/plot_results.py"
+```
+
+#### 5.3 View Generated Figures in Windows Explorer
+From Windows PowerShell, open the generated figures directory directly in Windows File Explorer:
+```powershell
+explorer.exe figures
+```
+*(Displays `load_distribution_comparison.png`, `latency_cdf.png`, `throughput_comparison.png`, and `fairness_index_comparison.png`.)*
+
+---
+
+### 🧹 Step 6: Teardown & Environment Cleanup
+
+When testing is finished, execute [`./scripts/cleanup.sh`](scripts/cleanup.sh) to cleanly terminate all background controller processes, backend HTTP servers, telemetry threads, and purge Mininet namespaces and lingering OVS bridges:
+
+**🐧 Native WSL2 Terminal (Bash):**
+```bash
+cd /mnt/e/Projects/sdn-project
+./scripts/cleanup.sh
+```
+
+**🪟 Windows PowerShell (`wsl`):**
+```powershell
+wsl -e bash -c "cd /mnt/e/Projects/sdn-project && ./scripts/cleanup.sh"
+```
+
+---
+
+### ❓ Step 7: Troubleshooting & Common WSL2 Pitfalls FAQ
+
+#### Q1: `ovs-vsctl: unix:/var/run/openvswitch/db.sock: database connection failed`
+- **Cause:** In WSL2, background services do not automatically start on boot unless configured via systemd.
+- **Fix:** Start the Open vSwitch daemon manually:
+  ```powershell
+  wsl -u root service openvswitch-switch start
+  ```
+
+#### Q2: `sudo mn -c` terminates my Ryu controller instance!
+- **Cause:** Stock Mininet's `/usr/lib/python3/dist-packages/mininet/clean.py` contains `'ryu-manager'` in its `killprocs` list.
+- **Fix:** Run `./scripts/setup_env.sh`, which automatically removes `'ryu-manager'` from `clean.py`. Alternatively, run this one-liner:
+  ```powershell
+  wsl -u root sed -i "s/'ryu-manager'//g" /usr/lib/python3/dist-packages/mininet/clean.py
+  ```
+
+#### Q3: `ModuleNotFoundError` when running Mininet with `sudo`
+- **Cause:** Running `sudo python3` invokes the root system Python (`/usr/bin/python3`) rather than your virtual environment where Ryu and Scapy are installed.
+- **Fix:** Use the full virtual environment Python binary path:
+  ```powershell
+  wsl -e bash -c "sudo /home/$USER/sdn-venv/bin/python3 topology/lb_topology.py"
+  ```
+  *(Or in WSL bash: `sudo $(which python3) topology/lb_topology.py` after activating the virtual environment).*
+
+#### Q4: Cannot open Web Dashboard (`http://localhost:8081`) from Windows browser
+- **Cause:** WSL2 networking mode or local firewall is blocking port forwarding.
+- **Fix:**
+  1. Verify the dashboard is running: `wsl -e curl -s http://127.0.0.1:8081/api/stats`
+  2. If Windows cannot connect to `localhost:8081`, get the WSL2 internal IP:
+     ```powershell
+     wsl hostname -I
+     ```
+     Navigate in your Windows browser to `http://<WSL_IP>:8081`.
+
+#### Q5: Address already in use (`Errno 98` on port 6653, 8080, or 8081)
+- **Cause:** A previous instance of Ryu, Flask, or Mininet was interrupted before releasing its TCP socket.
+- **Fix:** Kill lingering processes listening on these ports:
+  ```powershell
+  wsl -u root fuser -k 6653/tcp 8080/tcp 8081/tcp
+  wsl -e bash -c "cd /mnt/e/Projects/sdn-project && ./scripts/cleanup.sh"
+  ```
+
 
