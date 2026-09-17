@@ -252,35 +252,35 @@ Systematic benchmarking was conducted across 3 full iterations (72 requests tota
 #### Figure 5.1: Backend Request Distribution
 ![Backend Load Distribution Across Load Balancing Algorithms](../figures/load_distribution_comparison.png)
 
-*Figure 5.1: Empirical request distribution across servers `srv1` to `srv4`. Both Round-Robin and Least-Connections maintain uniform request allocation ($18:18:18:18$), while Weighted Round-Robin allocates exactly double the load to higher-capacity servers `srv2` and `srv4` ($12:24:12:24$).*
+*Figure 5.1: Empirical request distribution across servers `srv1` to `srv4`. Both Round-Robin and Least-Connections maintain uniform request allocation (18:18:18:18), while Weighted Round-Robin allocates exactly double the load to higher-capacity servers `srv2` and `srv4` (12:24:12:24).*
 
 ---
 
 #### Figure 5.2: Jain's Fairness Index Comparison
 ![Jain's Fairness Index Across Load Balancing Algorithms](../figures/fairness_index_comparison.png)
 
-*Figure 5.2: Jain's Fairness Index ($\mathcal{J}$) across the three algorithms compared against the theoretical upper bound of $1.0000$. Both Least-Connections and Round-Robin reach $\mathcal{J} = 1.0000$, and Weighted Round-Robin achieves an ideal normalized fairness index ($\mathcal{J}_w = 1.0000$).*
+*Figure 5.2: Jain's Fairness Index comparison across the three algorithms compared against the theoretical upper bound of 1.0000. Both Least-Connections and Round-Robin reach JFI = 1.0000, and Weighted Round-Robin achieves an ideal normalized fairness index (Weighted JFI = 1.0000).*
 
 ---
 
 #### Figure 5.3: Empirical Latency Cumulative Distribution Function (CDF)
 ![Empirical Latency CDF Under Concurrent Load](../figures/latency_cdf.png)
 
-*Figure 5.3: Cumulative Distribution Function (CDF) of client request latencies under concurrent load ($C=4$). Over 90% of requests complete within 40 ms due to OpenFlow kernel fast-path forwarding.*
+*Figure 5.3: Cumulative Distribution Function (CDF) of client request latencies under concurrent load (concurrency C = 4). Over 90% of requests complete within 40 ms due to OpenFlow kernel fast-path forwarding.*
 
 ---
 
 #### Figure 5.4: System Throughput (RPS) and Processing Speed
 ![System Throughput Comparison](../figures/throughput_comparison.png)
 
-*Figure 5.4: Request-per-second (RPS) throughput comparison. Round-Robin and Least-Connections achieve maximum processing rates ($32.13\text{ RPS}$ and $32.05\text{ RPS}$) with minimal scheduling overhead, while Weighted Round-Robin steers load proportional to capacity.*
+*Figure 5.4: Request-per-second (RPS) throughput comparison. Round-Robin and Least-Connections achieve maximum processing rates (32.13 RPS and 32.05 RPS) with minimal scheduling overhead, while Weighted Round-Robin steers load proportional to capacity.*
 
 ---
 
 ### 5.3 Result Discussion & Theoretical Interpretation
-1. **Optimal Fairness:** Both Least-Connections and Round-Robin achieved absolute theoretical fairness ($\mathcal{J} = 1.0000$), dividing requests with mathematical uniformity ($18:18:18:18$) across all 4 backends with 100% completion rates.
-2. **Capacity Proportionality:** Weighted Round-Robin allocated requests precisely conforming to assigned weights ($12:24:12:24$), achieving an ideal Weighted Fairness Index of $\mathcal{J}_w = 1.0000$.
-3. **Latency Profile & Throughput:** Round-Robin and Least-Connections achieved the lowest average latencies ($34.18\text{ ms}$ and $33.87\text{ ms}$) and highest throughput ($32.13\text{ RPS}$ and $32.05\text{ RPS}$). Weighted Round-Robin absorbed higher concurrency on `srv2` and `srv4`, conforming strictly to capacity requirements.
+1. **Optimal Fairness:** Both Least-Connections and Round-Robin achieved absolute theoretical fairness (JFI = 1.0000), dividing requests with mathematical uniformity (18:18:18:18) across all 4 backends with 100% completion rates.
+2. **Capacity Proportionality:** Weighted Round-Robin allocated requests precisely conforming to assigned weights (12:24:12:24), achieving an ideal Weighted Fairness Index of Weighted JFI = 1.0000.
+3. **Latency Profile & Throughput:** Round-Robin and Least-Connections achieved the lowest average latencies (34.18 ms and 33.87 ms) and highest throughput (32.13 RPS and 32.05 RPS). Weighted Round-Robin absorbed higher concurrency on `srv2` and `srv4`, conforming strictly to capacity requirements.
 
 ---
 

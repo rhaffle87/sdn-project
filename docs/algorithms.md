@@ -90,9 +90,11 @@ In production data centers, servers often possess disparate hardware specificati
 
 ### Mathematical Formulation
 Given backends $b_0, b_1, \dots, b_{n-1}$ with configured weights $w_0, w_1, \dots, w_{n-1}$. The total weight is:
+
 $$W = \sum_{j=0}^{n-1} w_j$$
 
 The expected proportion of traffic allocated to server $b_j$ over $N$ total requests is:
+
 $$E[T_j] = N \cdot \frac{w_j}{W}$$
 
 In our deployment:
@@ -165,41 +167,41 @@ The algorithms were benchmarked systematically inside the Mininet environment ac
 #### Figure 6.1: Backend Request Distribution
 ![Backend Load Distribution Across Load Balancing Algorithms](../figures/load_distribution_comparison.png)
 
-*Figure 6.1: Total requests served by each backend instance (`srv1` to `srv4`) across the three algorithms. Round-Robin and Least-Connections maintain uniform distribution across all servers ($18:18:18:18$), whereas Weighted allocates exactly double the load to higher-capacity servers `srv2` and `srv4` ($12:24:12:24$).*
+*Figure 6.1: Total requests served by each backend instance (`srv1` to `srv4`) across the three algorithms. Round-Robin and Least-Connections maintain uniform distribution across all servers (18:18:18:18), whereas Weighted allocates exactly double the load to higher-capacity servers `srv2` and `srv4` (12:24:12:24).*
 
 ---
 
 #### Figure 6.2: Jain's Fairness Index Comparison
 ![Jain's Fairness Index Across Load Balancing Algorithms](../figures/fairness_index_comparison.png)
 
-*Figure 6.2: Jain's Fairness Index ($\mathcal{J}$) comparison against the theoretical optimum of $1.0000$ (red dashed line). Both Least-Connections and Round-Robin achieve absolute mathematical equity ($\mathcal{J} = 1.0000$), while Weighted Round-Robin scores an ideal normalized fairness index ($\mathcal{J}_w = 1.0000$).*
+*Figure 6.2: Jain's Fairness Index comparison against the theoretical optimum of 1.0000 (red dashed line). Both Least-Connections and Round-Robin achieve absolute mathematical equity (JFI = 1.0000), while Weighted Round-Robin scores an ideal normalized fairness index (Weighted JFI = 1.0000).*
 
 ---
 
 #### Figure 6.3: Empirical Latency Cumulative Distribution Function (CDF)
 ![Empirical Latency CDF Under Concurrent Load](../figures/latency_cdf.png)
 
-*Figure 6.3: Cumulative Distribution Function (CDF) of client request latencies under concurrent load ($C=4$). The steep vertical rise between 30 ms and 40 ms illustrates that over 90% of requests are processed rapidly in OVS fast-path kernel space, while the tail accounts for initial controller Table-Miss packet-in setup overhead.*
+*Figure 6.3: Cumulative Distribution Function (CDF) of client request latencies under concurrent load (C = 4). The steep vertical rise between 30 ms and 40 ms illustrates that over 90% of requests are processed rapidly in OVS fast-path kernel space, while the tail accounts for initial controller Table-Miss packet-in setup overhead.*
 
 ---
 
 #### Figure 6.4: System Throughput (RPS) and Processing Speed
 ![System Throughput Comparison](../figures/throughput_comparison.png)
 
-*Figure 6.4: Request-per-second (RPS) throughput across algorithms. Round-Robin and Least-Connections achieve maximum processing rates ($32.13\text{ RPS}$ and $32.05\text{ RPS}$) with minimal scheduling overhead.*
+*Figure 6.4: Request-per-second (RPS) throughput across algorithms. Round-Robin and Least-Connections achieve maximum processing rates (32.13 RPS and 32.05 RPS) with minimal scheduling overhead.*
 
 ---
 
 ### 6.2 In-Depth Performance Analysis
 
-1. **Least-Connections Perfection ($\mathcal{J} = 1.0000$):**
-   Least-Connections achieved absolute mathematical uniformity ($18:18:18:18$) across all 4 backends. Because active connection tracking dynamically adapts to real-time socket lifetimes, it prevented queue buildup on any single server, resulting in the lowest average response latency ($33.87\text{ ms}$) and lowest 95th percentile latency ($36.03\text{ ms}$).
+1. **Least-Connections Perfection (JFI = 1.0000):**
+   Least-Connections achieved absolute mathematical uniformity (18:18:18:18) across all 4 backends. Because active connection tracking dynamically adapts to real-time socket lifetimes, it prevented queue buildup on any single server, resulting in the lowest average response latency (33.87 ms) and lowest 95th percentile latency (36.03 ms).
 
-2. **Weighted Round-Robin Capacity Steering ($\mathcal{J}_w = 1.0000$):**
-   Weighted Round-Robin matched its target ratio of $1:2:1:2$ with zero deviation ($[12, 24, 12, 24]$). By directing two-thirds ($66.7\%$) of incoming connections to higher-weight servers (`srv2` and `srv4`), it conforms strictly to heterogeneous capacity assignments with normalized fairness $\mathcal{J}_w = 1.0000$.
+2. **Weighted Round-Robin Capacity Steering (Weighted JFI = 1.0000):**
+   Weighted Round-Robin matched its target ratio of 1:2:1:2 with zero deviation (`[12, 24, 12, 24]`). By directing two-thirds (66.7%) of incoming connections to higher-weight servers (`srv2` and `srv4`), it conforms strictly to heterogeneous capacity assignments with normalized fairness Weighted JFI = 1.0000.
 
-3. **Round-Robin Determinism ($\mathcal{J} = 1.0000$):**
-   Round-Robin executed with minimal CPU overhead, achieving perfect fairness ($1.0000$) with 72/72 successful completions and top throughput ($32.13\text{ RPS}$). The pre-population of ARP cache and host MACs eliminated cold-start drop penalties.
+3. **Round-Robin Determinism (JFI = 1.0000):**
+   Round-Robin executed with minimal CPU overhead, achieving perfect fairness (1.0000) with 72/72 successful completions and top throughput (32.13 RPS). The pre-population of ARP cache and host MACs eliminated cold-start drop penalties.
 
 ---
 

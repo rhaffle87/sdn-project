@@ -205,10 +205,10 @@ flowchart LR
 
 ![Figure: Live Web Telemetry Dashboard](figures/dashboard_full_system_verified.png)
 
-- **Benchmark Highlights (72 requests, $C=4$):**
-  - **Round-Robin:** Achieved perfect mathematical fairness ($\mathcal{J} = 1.0000$) with uniform $18:18:18:18$ distribution, 100% request completion, and top throughput ($32.13\text{ RPS}$).
-  - **Least-Connections:** Achieved perfect mathematical fairness ($\mathcal{J} = 1.0000$) with uniform $18:18:18:18$ request distribution and the lowest average latency ($33.87\text{ ms}$).
-  - **Weighted (1:2:1:2):** Achieved ideal normalized fairness ($\mathcal{J}_w = 1.0000$) with exact $12:24:12:24$ load distribution matching configured capacities.
+- **Benchmark Highlights (72 requests, concurrency C = 4):**
+  - **Round-Robin:** Achieved perfect mathematical fairness (JFI = 1.0000) with uniform 18:18:18:18 distribution, 100% request completion, and top throughput (32.13 RPS).
+  - **Least-Connections:** Achieved perfect mathematical fairness (JFI = 1.0000) with uniform 18:18:18:18 request distribution and the lowest average latency (33.87 ms).
+  - **Weighted (1:2:1:2):** Achieved ideal normalized fairness (Weighted JFI = 1.0000) with exact 12:24:12:24 load distribution matching configured capacities.
 
 ---
 
