@@ -54,9 +54,11 @@ Least-Connections optimizes for heterogeneous request execution durations by dis
 
 ### Mathematical Formulation
 Let $C(b_j)$ denote the active connection count currently assigned to backend $b_j \in \mathcal{B}$.
+
 $$b^* = \arg\min_{b_j \in \mathcal{B}} C(b_j)$$
 
 In the event of a tie where multiple servers share the identical minimum count:
+
 $$\arg\min \{ C(b_j) \} \implies \text{Round-Robin tie breaker among candidate minimums}$$
 
 ### Pseudocode
