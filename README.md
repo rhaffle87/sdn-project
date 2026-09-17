@@ -517,19 +517,30 @@ wsl -e bash -c "./scripts/run_test.sh tests/test_failover.py"
 
 ### 🚀 Step 3: Launching the Full Production Stack (Interactive End-to-End)
 
-To observe real-time SDN load balancing, traffic engineering, and live web telemetry, open **three terminal tabs**:
+To observe real-time SDN load balancing, traffic engineering, and live web telemetry, open **four terminal tabs** (or background processes):
 
-```
-┌─────────────────────────────────┐   ┌─────────────────────────────────┐
-│  TERMINAL 1: Ryu Controller     │   │  TERMINAL 2: Mininet Topology   │
-│  Port 6653 (OFP) & 8080 (REST)  │   │  OVS Switches + 4 HTTP Backends │
-└─────────────────────────────────┘   └─────────────────────────────────┘
-                 │                                     │
-                 ▼                                     ▼
-┌─────────────────────────────────┐   ┌─────────────────────────────────┐
-│  TERMINAL 3: Telemetry Dashboard│   │  TERMINAL 4: Experimenter / CLI │
-│  http://localhost:8081 (Flask)  │   │  curl, REST API, Benchmarks     │
-└─────────────────────────────────┘   └─────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph T1_Box ["🖥️ Terminal 1: Control Plane"]
+        T1["<b>Ryu SDN Controller</b><br/>• OpenFlow 1.3 Server (:6653)<br/>• WSGI REST API (:8080)<br/>• LB, TE & Health Engines"]
+    end
+
+    subgraph T2_Box ["⚡ Terminal 2: Data Plane"]
+        T2["<b>Mininet Diamond Topology</b><br/>• 4 OVS Switches (s1–s4)<br/>• 4 HTTP Backends (:80)<br/>• Client Hosts (h1, h2)"]
+    end
+
+    subgraph T3_Box ["📊 Terminal 3: Telemetry Console"]
+        T3["<b>Live Operations Dashboard</b><br/>• Flask Web Service (:8081)<br/>• Real-Time Bandwidth & JFI Gauges<br/>• Browser: http://localhost:8081"]
+    end
+
+    subgraph T4_Box ["🕹️ Terminal 4: Host & Experimenter"]
+        T4["<b>Experimenter Console / CLI</b><br/>• Client HTTP Probes (curl)<br/>• REST API Algorithm Toggles<br/>• Automated Benchmark Orchestrator"]
+    end
+
+    T1 <-->|"OpenFlow 1.3 (TCP 6653)<br/>Flow-Mod / Packet-In / Stats"| T2
+    T3 -->|"REST Telemetry Polling<br/>(HTTP 8080 /api/telemetry)"| T1
+    T4 -->|"REST Policy Updates<br/>(HTTP 8080 /api/algorithm)"| T1
+    T4 -->|"Client HTTP Traffic<br/>(VIP: 10.0.0.100:80)"| T2
 ```
 
 #### 3.1 Terminal 1: Launch Ryu SDN Controller
