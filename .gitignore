@@ -42,3 +42,4 @@ env/
 *.pid
 mn_exec/
 scratch/
+.playwright-mcp/

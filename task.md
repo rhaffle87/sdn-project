@@ -132,3 +132,12 @@
 - [x] **Re-Audit 7: `dashboard/live_dashboard.py` Simulation Fallback Latency**: Tuned Gaussian distribution generator to `gauss(34, 6)` matching empirical data.
 - [x] **Verification**: Zero drift confirmed across all code, daemons, test logs, and documentation files. Ready for final presentation.
 
+### Phase 8: Operations Dashboard Holistic Re-Audit `[x]`
+- [x] **Live Datapath Telemetry Sync**: Verified `sim_mode: false` on `http://localhost:8081` with live proxying to Ryu REST API (`:8080`).
+- [x] **Browser Runtime & Console Integrity**: Verified 0 JavaScript errors, 0 warnings, and 0 uncaught exceptions across full test session.
+- [x] **Interactive Controls & Policy Switching**: Successfully executed and verified dynamic policy shifts (`Round-Robin` <-> `Least-Conn`), TE path overrides (`Adaptive` <-> `Force Path B`), and traffic burst dispatches (`sendTraffic(8)`).
+- [x] **High-Availability & Failover Probing**: Successfully simulated administrative backend crash/restore on `srv3` with instantaneous UI state updates and event logging.
+- [x] **Multi-Viewport Visual Alignment**: Validated layout integrity across Desktop (1440×900px, 6-card KPI ribbon, balanced 2-column grid) and Mobile (390×844px, 2-column stacked KPIs, 0px horizontal overflow).
+- [x] **Empirical Artifacts**: Generated [`figures/dashboard_reaudit_final.png`](file:///e:/Projects/sdn-project/figures/dashboard_reaudit_final.png) and [`figures/dashboard_reaudit_mobile.png`](file:///e:/Projects/sdn-project/figures/dashboard_reaudit_mobile.png).
+
+
