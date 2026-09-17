@@ -121,3 +121,14 @@
 - [x] **Finding 9: Repository Tree Completeness**: Added `scripts/run_test.sh` to the directory structure in `README.md`.
 - [x] **Finding 10: Dependencies Annotation**: Annotated `scapy` and `networkx` in `requirements.txt` as optional testing and prototyping utilities.
 - [x] **Verification**: All 3 test suites passed 100% (`test_vip_rewrite.py`, `test_lb_algorithms.py`, `test_failover.py`), and continuous daemons verified active (`sim_mode: false`).
+
+### Phase 7: Holistic System Re-Audit & Fine-Tuning `[x]`
+- [x] **Re-Audit 1: `docs/system_architecture.md` Latency & JFI Drift**: Harmonized JFI to $\mathcal{J}=1.0000$ and updated $P_{50}, P_{95}, P_{99}$ percentiles to match `summary_metrics.json`.
+- [x] **Re-Audit 2: `docs/final_report.md` Table 5.1 Cell Precision**: Corrected Min, Max, and P90 latencies across RR, LC, and WRR to exact two-decimal aggregated benchmark values.
+- [x] **Re-Audit 3: `docs/architecture.md` Annotated Flow Dump**: Added Priority 30 Proxy ARP rule entry to the `s1` dump-flows snippet.
+- [x] **Re-Audit 4: `docs/architecture.md` Sequence Diagram**: Explicitly marked ARP Step 1 as matching the proactive Priority 30 rule.
+- [x] **Re-Audit 5: Priority 20 vs Priority 50 Architecture Note**: Documented design rationale in `controller/config.py` and `docs/architecture.md` explaining embedded TE transit output in Priority 50 NAT flows vs reserved Priority 20 bulk L3 transit overrides.
+- [x] **Re-Audit 6: `docs/algorithms.md` Least-Connections Pseudocode**: Updated dictionary indexing to use `srv['id']`.
+- [x] **Re-Audit 7: `dashboard/live_dashboard.py` Simulation Fallback Latency**: Tuned Gaussian distribution generator to `gauss(34, 6)` matching empirical data.
+- [x] **Verification**: Zero drift confirmed across all code, daemons, test logs, and documentation files. Ready for final presentation.
+
