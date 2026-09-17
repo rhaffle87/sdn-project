@@ -5,13 +5,15 @@
 **Department of Telecommunication Engineering**  
 **Faculty of Intelligent Electrical and Informatics Technology (ELECTICS)**  
 **Institut Teknologi Sepuluh Nopember (ITS), Surabaya**  
+**Course:** Software-Defined Networking (SDN) & Network Function Virtualization  
+**Related Documentation:** [Architecture Specification](architecture.md) · [System Architecture Deep-Dive](system_architecture.md) · [Load Balancing Algorithms](algorithms.md) · [CPMK Academic Mapping](cpmk_mapping.md) · [Main Repository README](../README.md)
 
 ---
 
 ### Abstract
 Modern data centers face escalating traffic demands requiring high-throughput, agile, and cost-efficient traffic distribution. Traditional hardware Application Delivery Controllers (ADCs) suffer from high capital expenditure, vendor lock-in, rigid scalability, and lack of integration with global network telemetry. This project designs, implements, and evaluates a Software-Defined Networking (SDN) based Layer 4 Load Balancer and Adaptive Traffic Engineering system using the Ryu controller framework and OpenFlow 1.3, validated entirely within a Mininet-emulated Open vSwitch (OVS) environment. 
 
-The system implements Virtual IP (VIP) network abstraction with line-rate bidirectional NAT rewriting, eliminating controller bottlenecks after flow setup. Three distinct load distribution algorithms—Round-Robin, Least-Connections, and Weighted Round-Robin—are developed and comparatively analyzed. An active health prober detects backend server failures and reconfigures the forwarding plane without service interruption. Furthermore, real-time OpenFlow port telemetry drives an adaptive traffic engineering engine that dynamically reroutes flows across redundant transit links upon threshold saturation (>80%). Experimental evaluation across 3 independent iterations (72 total requests per algorithm, concurrency $C=4$) demonstrated optimal fairness, achieving a Jain's Fairness Index (JFI) of $\mathcal{J} = 1.0000$ for Least-Connections and Weighted modes ($\mathcal{J} = 0.9994$ for Round-Robin), with an average latency of 51.16 ms (LC) and sub-second failover. This project completely fulfills Course Learning Outcomes CPMK-1 through CPMK-5 for undergraduate telecommunication engineering education.
+The system implements Virtual IP (VIP) network abstraction with line-rate bidirectional NAT rewriting, eliminating controller bottlenecks after initial flow setup. Three distinct load distribution algorithms—Round-Robin, Least-Connections, and Weighted Round-Robin—are developed and comparatively analyzed. An active health prober detects backend server failures and reconfigures the forwarding plane without service interruption. Furthermore, real-time OpenFlow port telemetry drives an adaptive traffic engineering engine that dynamically reroutes flows across redundant transit links upon threshold saturation (>80%). Experimental evaluation across 3 independent iterations (72 total requests per algorithm, concurrency $C=4$) demonstrated optimal fairness, achieving a Jain's Fairness Index (JFI) of $\mathcal{J} = 1.0000$ for Least-Connections and Weighted modes ($\mathcal{J} = 0.9994$ for Round-Robin), with an average latency of 51.16 ms (LC) and sub-second failover. This project completely fulfills Course Learning Outcomes CPMK-1 through CPMK-5 for undergraduate telecommunication engineering education.
 
 **Keywords:** *Software-Defined Networking (SDN), OpenFlow 1.3, Ryu Controller, Open vSwitch, Load Balancing, Adaptive Traffic Engineering, Network Virtualization, Jain's Fairness Index.*
 
@@ -150,7 +152,7 @@ The data plane is modeled as a 4-switch diamond multi-path topology inside Minin
 - **Link Constraints:** Inter-switch transit links are conditioned with `TCLink` at 10 Mbps bandwidth and 2 ms delay, while access links operate at 20 Mbps with 1 ms delay.
 
 ### 3.3 OpenFlow 1.3 Symmetrical NAT Packet Pipeline
-The diagram below illustrates the exact sequence of OpenFlow 1.3 control-data plane interactions during a client request to the Virtual IP:
+The sequence diagram below illustrates the exact OpenFlow 1.3 control-data plane interactions during a client request to the Virtual IP:
 
 ```mermaid
 sequenceDiagram
@@ -200,12 +202,12 @@ To prevent rule collisions, the flow table enforces strict priority ordering:
 
 ### 4.1 Modular Controller Structure
 The controller application is implemented in Python under the Ryu framework:
-1. `controller/main.py`: Core RyuApp managing OpenFlow events and exposing a REST API.
-2. `controller/flow_manager.py`: Utilities for flow rule construction, modification, and deletion.
-3. `controller/load_balancer.py`: Logic for Proxy ARP, NAT flow generation, and algorithm selection.
-4. `controller/stats_monitor.py`: Green-thread polling of port byte counters every 5 seconds.
-5. `controller/health_checker.py`: Active HTTP health verification prober.
-6. `controller/traffic_engineer.py`: Utilization analysis and alternate path switching.
+1. [`controller/main.py`](../controller/main.py): Core RyuApp managing OpenFlow events and exposing a REST API.
+2. [`controller/flow_manager.py`](../controller/flow_manager.py): Utilities for flow rule construction, modification, and deletion.
+3. [`controller/load_balancer.py`](../controller/load_balancer.py): Logic for Proxy ARP, NAT flow generation, and algorithm selection.
+4. [`controller/stats_monitor.py`](../controller/stats_monitor.py): Green-thread polling of port byte counters every 5 seconds.
+5. [`controller/health_checker.py`](../controller/health_checker.py): Active HTTP health verification prober.
+6. [`controller/traffic_engineer.py`](../controller/traffic_engineer.py): Utilization analysis and alternate path switching.
 
 ### 4.2 Algorithms Implemented
 - **Round-Robin (RR):** Incremental modulo pointer indexing across healthy nodes.
@@ -213,7 +215,11 @@ The controller application is implemented in Python under the Ryu framework:
 - **Weighted Round-Robin (WRR):** Weighted cyclic selection conforming to ratios $1:2:1:2$ for servers 1 through 4.
 
 ### 4.3 Backend Microservices & Telemetry Dashboard
-Backend servers are implemented as Python Flask microservices (`server/backend_server.py`) responding with structured JSON payloads containing server IDs and request counters. A live web dashboard (`dashboard/live_dashboard.py`) runs on port 8081, providing real-time SVG link utilization gauges, backend status indicators, and runtime algorithm toggles.
+Backend servers are implemented as Python Flask microservices ([`server/backend_server.py`](../server/backend_server.py)) responding with structured JSON payloads containing server IDs and request counters. A live web dashboard ([`dashboard/live_dashboard.py`](../dashboard/live_dashboard.py)) runs on port 8081, providing real-time SVG link utilization gauges, backend status indicators, and runtime algorithm toggles:
+
+![Figure 4.1: Live Web Telemetry Dashboard Interface](../figures/dashboard_verified.png)
+
+*Figure 4.1: Live Web Telemetry Dashboard (:8081) showcasing real-time SDN telemetry. Port statistics are continuously aggregated to monitor link bandwidth saturation on Path A and Path B, driving dynamic rerouting decisions.*
 
 ---
 
@@ -239,18 +245,54 @@ Systematic benchmarking was conducted across 3 full iterations (72 requests tota
 | **99th Percentile ($P_{99}$)** | 440.49 ms | 334.33 ms | **132.08 ms** |
 | **Maximum Latency** | 1042.50 ms | 355.63 ms | **156.38 ms** |
 
-#### Result Analysis:
-- **Optimal Fairness:** Least-Connections achieved absolute theoretical fairness ($\mathcal{J} = 1.0000$), dividing requests with mathematical uniformity ($18:18:18:18$) across all 4 backends. Round-Robin achieved near-perfect equity ($\mathcal{J} = 0.9994$).
-- **Capacity Proportionality:** Weighted Round-Robin allocated requests precisely conforming to assigned weights ($12:24:12:24$), achieving an ideal Weighted Fairness Index of $\mathcal{J}_w = 1.0000$.
-- **Tail Latency Mitigation:** Weighted Round-Robin yielded the tightest 99th percentile response latency ($P_{99} = 132.08\text{ ms}$ vs $440.49\text{ ms}$ on RR) and highest overall throughput ($28.73\text{ RPS}$), as 66.7% of requests were absorbed by higher-capacity backend instances. Least-Connections achieved the lowest average latency ($51.16\text{ ms}$) and tightest 95th percentile ($68.80\text{ ms}$).
+---
 
-### 5.2 Fault Tolerance and High Availability
-The resilience of the system was validated through automated tests (`tests/test_failover.py`):
+### 5.2 Graphical Benchmark Evaluation
+
+#### Figure 5.1: Backend Request Distribution
+![Backend Load Distribution Across Load Balancing Algorithms](../figures/load_distribution_comparison.png)
+
+*Figure 5.1: Empirical request distribution across servers `srv1` to `srv4`. Least-Connections achieves uniform request allocation ($18:18:18:18$), while Weighted Round-Robin allocates exactly double the load to higher-capacity servers `srv2` and `srv4` ($12:24:12:24$).*
+
+---
+
+#### Figure 5.2: Jain's Fairness Index Comparison
+![Jain's Fairness Index Across Load Balancing Algorithms](../figures/fairness_index_comparison.png)
+
+*Figure 5.2: Jain's Fairness Index ($\mathcal{J}$) across the three algorithms compared against the theoretical upper bound of $1.0000$. Least-Connections reaches $\mathcal{J} = 1.0000$, Round-Robin achieves $\mathcal{J} = 0.9994$, and Weighted Round-Robin achieves an ideal normalized fairness index ($\mathcal{J}_w = 1.0000$).*
+
+---
+
+#### Figure 5.3: Empirical Latency Cumulative Distribution Function (CDF)
+![Empirical Latency CDF Under Concurrent Load](../figures/latency_cdf.png)
+
+*Figure 5.3: Cumulative Distribution Function (CDF) of client request latencies under concurrent load ($C=4$). Over 85% of requests complete within 50 ms due to OpenFlow kernel fast-path forwarding.*
+
+---
+
+#### Figure 5.4: System Throughput (RPS) and Processing Speed
+![System Throughput Comparison](../figures/throughput_comparison.png)
+
+*Figure 5.4: Request-per-second (RPS) throughput comparison. Weighted Round-Robin achieves the highest processing rate ($28.73\text{ RPS}$) and lowest tail latency ($P_{99} = 132.08\text{ ms}$) by steering the majority of requests toward higher-capacity nodes.*
+
+---
+
+### 5.3 Result Discussion & Theoretical Interpretation
+1. **Optimal Fairness:** Least-Connections achieved absolute theoretical fairness ($\mathcal{J} = 1.0000$), dividing requests with mathematical uniformity ($18:18:18:18$) across all 4 backends. Round-Robin achieved near-perfect equity ($\mathcal{J} = 0.9994$).
+2. **Capacity Proportionality:** Weighted Round-Robin allocated requests precisely conforming to assigned weights ($12:24:12:24$), achieving an ideal Weighted Fairness Index of $\mathcal{J}_w = 1.0000$.
+3. **Tail Latency Mitigation:** Weighted Round-Robin yielded the tightest 99th percentile response latency ($P_{99} = 132.08\text{ ms}$ vs $440.49\text{ ms}$ on RR) and highest overall throughput ($28.73\text{ RPS}$), as 66.7% of requests were absorbed by higher-capacity backend instances. Least-Connections achieved the lowest average latency ($51.16\text{ ms}$) and tightest 95th percentile ($68.80\text{ ms}$).
+
+---
+
+### 5.4 Fault Tolerance and High Availability
+The resilience of the system was validated through automated tests ([`tests/test_failover.py`](../tests/test_failover.py)):
 1. **Server Death:** `srv2` process was abruptly terminated. The `HealthChecker` detected consecutive probe failures, removed `srv2` from active selection, and evicted stale flows. All subsequent client requests were redistributed seamlessly among `srv1`, `srv3`, and `srv4` with zero HTTP 5xx errors.
 2. **Server Recovery:** When `srv2` was restarted, the prober verified an HTTP 200 on `/health` and automatically restored the node into the scheduling pool.
 3. **Link Failure Failover:** The primary transit link between `s1` and `s2` was severed (`link s1 s2 down`). The controller instantly detected the port change, evicted invalid flows, and rerouted client sessions across Path B (`s1 -> s3 -> s4`) with sub-second convergence.
 
-### 5.3 Adaptive Traffic Engineering
+---
+
+### 5.5 Adaptive Traffic Engineering
 During high-volume traffic bursts, link utilization on Path A was monitored via `StatsMonitor`. When bandwidth saturation exceeded 80% of the 10 Mbps link capacity, the `TrafficEngineer` module installed Priority 20 flow rules on ingress switch `s1`, steering new sessions over Path B (`s3`), successfully relieving congestion on the primary path.
 
 ---

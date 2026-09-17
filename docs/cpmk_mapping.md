@@ -3,6 +3,8 @@
 **Course:** Software-Defined Networking (SDN) & Network Function Virtualization  
 **Institution:** Institut Teknologi Sepuluh Nopember (ITS) — Department of Telecommunication Engineering  
 **Project Title:** Design and Implementation of an OpenFlow 1.3 SDN-Based Load Balancer and Adaptive Traffic Engineering System  
+**Author / Candidate:** Undergraduate Telecommunication Engineering Program  
+**Related Documentation:** [Architecture Specification](architecture.md) · [System Architecture Deep-Dive](system_architecture.md) · [Load Balancing Algorithms](algorithms.md) · [Final Capstone Report](final_report.md) · [Main Repository README](../README.md)
 
 ---
 
@@ -10,11 +12,11 @@
 
 | CPMK ID | Course Learning Outcome Description | Concrete Implementation Module | Empirical Test & Verification Evidence | Academic Weight & Mastery |
 |---|---|---|---|---|
-| **CPMK-1** | Master SDN Concepts and Principles | `topology/lb_topology.py`<br/>`scripts/setup_env.sh` | Decoupled Ryu controller (TCP 6653) & OVS datapath; Wireshark OpenFlow 1.3 dissector traces | **100% (High Mastery)** |
-| **CPMK-2** | Master Control/Data Plane Separation | `controller/main.py`<br/>`controller/flow_manager.py` | `EventOFPSwitchFeatures` Table-Miss installation, Packet-In handling, bidirectional NAT Flow-Mod rules | **100% (High Mastery)** |
-| **CPMK-3** | Implement Network Virtualization | `controller/load_balancer.py`<br/>`controller/config.py` | Virtual IP (`10.0.0.100`) & Virtual MAC (`00:00:00:00:fe`) abstraction; `tests/test_vip_rewrite.py` | **100% (High Mastery)** |
-| **CPMK-4** | Understand SDN Application & Ecosystem | `controller/stats_monitor.py`<br/>`controller/traffic_engineer.py` | Periodic `OFPPortStatsRequest` telemetry; dynamic rerouting from Path A to Path B at >80% link load | **100% (High Mastery)** |
-| **CPMK-5** | Design SDN and Master Its Development | `benchmark/`<br/>`dashboard/`<br/>`tests/test_failover.py` | Comparative evaluation of RR, LC, WRR ($\mathcal{J}=1.0000$); sub-second backend & link failover | **100% (High Mastery)** |
+| **CPMK-1** | Master SDN Concepts and Principles | [`topology/lb_topology.py`](../topology/lb_topology.py)<br/>[`scripts/setup_env.sh`](../scripts/setup_env.sh) | Decoupled Ryu controller (TCP 6653) & OVS datapath; Wireshark OpenFlow 1.3 dissector traces | **100% (High Mastery)** |
+| **CPMK-2** | Master Control/Data Plane Separation | [`controller/main.py`](../controller/main.py)<br/>[`controller/flow_manager.py`](../controller/flow_manager.py) | `EventOFPSwitchFeatures` Table-Miss installation, Packet-In handling, bidirectional NAT Flow-Mod rules | **100% (High Mastery)** |
+| **CPMK-3** | Implement Network Virtualization | [`controller/load_balancer.py`](../controller/load_balancer.py)<br/>[`controller/config.py`](../controller/config.py) | Virtual IP (`10.0.0.100`) & Virtual MAC (`00:00:00:00:00:fe`) abstraction; [`tests/test_vip_rewrite.py`](../tests/test_vip_rewrite.py) | **100% (High Mastery)** |
+| **CPMK-4** | Understand SDN Application & Ecosystem | [`controller/stats_monitor.py`](../controller/stats_monitor.py)<br/>[`controller/traffic_engineer.py`](../controller/traffic_engineer.py) | Periodic `OFPPortStatsRequest` telemetry; dynamic rerouting from Path A to Path B at >80% link load; Live Dashboard | **100% (High Mastery)** |
+| **CPMK-5** | Design SDN and Master Its Development | [`benchmark/run_all_benchmarks.py`](../benchmark/run_all_benchmarks.py)<br/>[`dashboard/live_dashboard.py`](../dashboard/live_dashboard.py)<br/>[`tests/test_failover.py`](../tests/test_failover.py) | Comparative evaluation of RR, LC, WRR ($\mathcal{J}=1.0000$); sub-second backend & link failover | **100% (High Mastery)** |
 
 ---
 
@@ -28,9 +30,9 @@
 - **Physical/Virtual Decoupling:** The control plane executes independently in a Python 3 virtual environment (`sdn-venv`), communicating with Mininet OVS kernel bridges via standard TCP port 6653.
 
 #### 2. Verification Artifacts & Code References:
-- `topology/lb_topology.py`: Provisions switches `s1`, `s2`, `s3`, `s4` with `protocols='OpenFlow13'` and `fail_mode='secure'`.
+- [`topology/lb_topology.py`](../topology/lb_topology.py): Provisions switches `s1`, `s2`, `s3`, `s4` with `protocols='OpenFlow13'` and `fail_mode='secure'`.
 - Southbound Handshake: Handshake negotiation confirmed via Ryu logs and `ovs-vsctl show`:
-  ```
+  ```text
   Bridge s1: Controller "tcp:127.0.0.1:6653", is_connected: true
   ```
 
@@ -46,13 +48,13 @@
   2. The controller inspects the TCP 5-tuple and computes the target server.
   3. The controller installs high-priority forward (Priority 50) and reverse (Priority 40) flow rules into OVS.
   4. Subsequent TCP segments (payload, ACKs, FINs) flow directly through the OVS kernel at wire speed with zero controller latency.
-- **Flow Timeouts:** Symmetrical flow entries are bounded with `idle_timeout=20` and `hard_timeout=60` to enforce timely table reclamation.
+- **Flow Timeouts:** Symmetrical flow entries are bounded with `idle_timeout=20` and `hard_timeout=60` with `OFPFF_SEND_FLOW_REM` to enforce timely table reclamation and connection tracking.
 
 #### 2. Verification Artifacts & Code References:
-- `controller/main.py`: Switch features handler (`switch_features_handler`) and Packet-In processor (`packet_in_handler`).
-- `controller/flow_manager.py`: Standardized helper functions `add_flow()` and `delete_flow()`.
+- [`controller/main.py`](../controller/main.py): Switch features handler (`switch_features_handler`) and Packet-In processor (`packet_in_handler`).
+- [`controller/flow_manager.py`](../controller/flow_manager.py): Standardized helper functions `add_flow()` and `delete_flow()`.
 - Empirical Evidence: Output of `ovs-ofctl -O OpenFlow13 dump-flows s1`:
-  ```
+  ```text
   cookie=0x0, duration=1.2s, table=0, n_packets=8, n_bytes=616, priority=50,tcp,nw_src=10.0.0.1,nw_dst=10.0.0.100,tp_dst=80 actions=set_field:10.0.0.12->ip_dst,set_field:00:00:00:00:00:12->eth_dst,output:3
   ```
 
@@ -67,8 +69,8 @@
 - **Zero Client Reconfiguration:** Clients communicate with the service via standard DNS/IP routing without requiring specialized client-side agents or software proxies.
 
 #### 2. Verification Artifacts & Code References:
-- `controller/load_balancer.py`: Proxy ARP synthesis (`send_arp_reply`) and bidirectional rewriting logic.
-- Automated Test: `tests/test_vip_rewrite.py` verified that `h1` and `h2` successfully resolve `10.0.0.100` via ARP and perform complete HTTP GET transactions with 100% success.
+- [`controller/load_balancer.py`](../controller/load_balancer.py): Proxy ARP synthesis (`send_arp_reply`) and bidirectional rewriting logic.
+- Automated Test: [`tests/test_vip_rewrite.py`](../tests/test_vip_rewrite.py) verified that `h1` and `h2` successfully resolve `10.0.0.100` via ARP and perform complete HTTP GET transactions with 100% success.
 
 ---
 
@@ -82,12 +84,14 @@
   - Standard ECMP hashes flows without awareness of link saturation.
   - The `TrafficEngineer` module continuously inspects the utilization of the primary transit link ($s1 \leftrightarrow s2$, Path A).
   - When link utilization breaches the 80% threshold (or during a physical link failure), the controller dynamically provisions alternate forwarding rules (Priority 20) routing new sessions over Path B ($s1 \leftrightarrow s3 \leftrightarrow s4$).
-  - Hysteresis thresholds (reverting below 50%) prevent route oscillation.
+  - Hysteresis thresholds (reverting below 50% for two consecutive cycles) prevent route oscillation.
 
-#### 2. Verification Artifacts & Code References:
-- `controller/stats_monitor.py`: Periodic green-thread collector and `EventOFPPortStatsReply` parser.
-- `controller/traffic_engineer.py`: Utilization monitoring, path selection state machine, and flow override installation.
-- Empirical Evidence: Live web dashboard displays real-time link gauges; `tests/test_failover.py` validated dynamic route failover across transit paths.
+#### 2. Empirical Verification & Visual Proof:
+![Figure CPMK-4: Live Telemetry Web Dashboard](../figures/dashboard_verified.png)
+
+*Figure CPMK-4: Live Web Telemetry Dashboard (:8081) illustrating real-time SDN telemetry. Port statistics are continuously aggregated to monitor link bandwidth saturation on Path A and Path B, driving dynamic rerouting decisions.*
+
+- Verification Modules: [`controller/stats_monitor.py`](../controller/stats_monitor.py) · [`controller/traffic_engineer.py`](../controller/traffic_engineer.py) · [`dashboard/live_dashboard.py`](../dashboard/live_dashboard.py)
 
 ---
 
@@ -105,16 +109,34 @@
   - Detects server crashes and removes dead nodes from the active pool (with instantaneous sub-second failover via admin REST override).
   - Evicts stale flow entries targeting dead instances via OpenFlow `OFPFC_DELETE`.
   - Automatically restores nodes upon recovery.
-- **Empirical Benchmarking & Evaluation:**
+- **Empirical Benchmarking & Evaluation Metrics:**
   - Evaluated using custom multi-threaded HTTP test harness (`benchmark/generate_load.py`).
   - Evaluated fairness using **Jain's Fairness Index (JFI)** ($\mathcal{J}=1.0000$ on LC and Weighted).
-  - Generated scientific evaluation figures in `figures/`:
-    - `load_distribution_comparison.png`
-    - `latency_cdf.png`
-    - `fairness_index_comparison.png`
-    - `throughput_comparison.png`
 
-#### 2. Verification Artifacts & Code References:
-- `benchmark/run_all_benchmarks.py`: Automated multi-run test orchestrator.
-- `tests/test_failover.py`: Automated server and link recovery suite (100% pass rate).
-- `dashboard/live_dashboard.py`: Interactive Flask web dashboard displaying live metrics and enabling runtime algorithm switching.
+#### 2. Benchmark Summary Table (72 Requests, $C=4$):
+
+| Algorithm | Requests | Distribution `[srv1, srv2, srv3, srv4]` | Target Ratio | Achieved Ratio | JFI ($\mathcal{J}$) | Weighted JFI ($\mathcal{J}_w$) | Avg Latency | Tail Latency ($P_{99}$) | Throughput |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Round-Robin** | 72 | `[18, 18, 18, 17]` | 1 : 1 : 1 : 1 | 1.05 : 1.05 : 1.05 : 1.00 | **0.9994** | 0.9000 | 61.12 ms | 440.49 ms | 27.55 RPS |
+| **Least-Connections** | 72 | `[18, 18, 18, 18]` | 1 : 1 : 1 : 1 | **1 : 1 : 1 : 1** | **1.0000** | 0.9000 | **51.16 ms** | 334.33 ms | 28.37 RPS |
+| **Weighted (WRR)** | 72 | `[12, 24, 12, 24]` | 1 : 2 : 1 : 2 | **1 : 2 : 1 : 2** | 0.9000 | **1.0000** | 51.77 ms | **132.08 ms** | **28.73 RPS** |
+
+#### 3. Empirical Graphical Evidence:
+
+##### Load Distribution Comparison
+![Load Distribution Comparison across Algorithms](../figures/load_distribution_comparison.png)
+
+##### Jain's Fairness Index Comparison
+![Jain's Fairness Index Comparison](../figures/fairness_index_comparison.png)
+
+##### Latency CDF & Percentile Performance
+![Empirical Latency CDF](../figures/latency_cdf.png)
+
+##### Throughput (RPS) Comparison
+![Throughput Comparison](../figures/throughput_comparison.png)
+
+#### 4. Verification Artifacts & Test Suites:
+- Automated Benchmarks: [`benchmark/run_all_benchmarks.py`](../benchmark/run_all_benchmarks.py)
+- Fault Tolerance & Failover Suite: [`tests/test_failover.py`](../tests/test_failover.py) (100% pass rate)
+- Scientific Plotting Utility: [`dashboard/plot_results.py`](../dashboard/plot_results.py)
+- Web Telemetry Dashboard: [`dashboard/live_dashboard.py`](../dashboard/live_dashboard.py)

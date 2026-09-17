@@ -197,11 +197,23 @@ flowchart LR
 - **Mechanism:**
   - Computes standard and Weighted Jain's Fairness Index ($J$):
     $$J(x_1, x_2, \dots, x_n) = \frac{\left(\sum_{i=1}^n x_i\right)^2}{n \cdot \sum_{i=1}^n x_i^2}$$
-  - Flask web dashboard (`:8081`) visualizes real-time per-backend request counts, active connections, link bandwidth utilization, and health status.
+  - Flask web dashboard (`:8081`) visualizes real-time per-backend request counts, active connections, link bandwidth utilization, and health status:
+
+![Figure: Live Web Telemetry Dashboard](figures/dashboard_verified.png)
+
+- **Benchmark Highlights (72 requests, $C=4$):**
+  - **Least-Connections:** Achieved perfect mathematical fairness ($\mathcal{J} = 1.0000$) with uniform $18:18:18:18$ request distribution and the lowest average latency ($51.16\text{ ms}$).
+  - **Weighted (1:2:1:2):** Achieved ideal normalized fairness ($\mathcal{J}_w = 1.0000$) with exact $12:24:12:24$ load distribution, highest throughput ($28.73\text{ RPS}$), and tightest tail latency ($P_{99} = 132.08\text{ ms}$).
+  - **Round-Robin:** Achieved near-perfect fairness ($\mathcal{J} = 0.9994$) with $18:18:18:17$ distribution and minimal CPU overhead.
 
 ---
 
-> 📘 **Deep Architectural Reference:** For mathematical formulations, failover recovery timelines, annotated flow table dumps, and exhaustive edge case analyses, see [`docs/system_architecture.md`](docs/system_architecture.md) and [`docs/architecture.md`](docs/architecture.md).
+> 📘 **Comprehensive Academic Documentation Suite:**
+> - [**Load Balancing & Traffic Engineering Algorithms**](docs/algorithms.md): Detailed mathematical models, complexity, and scientific charts.
+> - [**System Architecture Specification**](docs/architecture.md): Decoupling principles, flow pipeline, sequence diagrams, and annotated OVS dumps.
+> - [**Architecture Deep-Dive & Critical Review**](docs/system_architecture.md): Implementation mechanics, edge cases, and risk mitigation matrix.
+> - [**CPMK Academic Evidence Mapping**](docs/cpmk_mapping.md): Rubric mapping for ITS Department of Telecommunication Engineering.
+> - [**Final Capstone Report**](docs/final_report.md): Formal research paper covering abstract, theory, methodology, empirical results, and references.
 
 ---
 

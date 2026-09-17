@@ -1,12 +1,16 @@
 # System Architecture Specification
 
-## OpenFlow 1.3 SDN-Based Load Balancer & Adaptive Traffic Engineering System
+**Course:** Software-Defined Networking (SDN) & Network Function Virtualization  
+**Institution:** Institut Teknologi Sepuluh Nopember (ITS) — Department of Telecommunication Engineering  
+**System Title:** OpenFlow 1.3 SDN-Based Load Balancer & Adaptive Traffic Engineering System  
+**Implementation Modules:** [`controller/main.py`](../controller/main.py) · [`controller/flow_manager.py`](../controller/flow_manager.py) · [`controller/load_balancer.py`](../controller/load_balancer.py) · [`controller/traffic_engineer.py`](../controller/traffic_engineer.py) · [`dashboard/live_dashboard.py`](../dashboard/live_dashboard.py)  
+**Related Documentation:** [Load Balancing Algorithms](algorithms.md) · [System Architecture Deep-Dive](system_architecture.md) · [CPMK Academic Mapping](cpmk_mapping.md) · [Final Capstone Report](final_report.md) · [Main Repository README](../README.md)
 
 ---
 
 ## 1. Architectural Overview
 
-This system replaces traditional hardware application delivery controllers (ADCs) by decoupling control and data planes through OpenFlow 1.3. The control plane, implemented using the **Ryu SDN Framework**, manages physical forwarding topology, dynamic load balancing, health monitoring, and traffic engineering. The data plane is executed on **Open vSwitch (OVS)** inside a Mininet-emulated network environment.
+This system replaces traditional hardware application delivery controllers (ADCs) by completely decoupling control and data planes through the standardized OpenFlow 1.3 protocol. The control plane, implemented using the **Ryu SDN Framework**, manages physical forwarding topology, dynamic load balancing, health monitoring, and traffic engineering. The data plane is executed on **Open vSwitch (OVS)** inside a Mininet-emulated network environment.
 
 ```mermaid
 flowchart TD
@@ -210,3 +214,25 @@ sequenceDiagram
      
      $$\text{Utilization (\%)} = \frac{\text{Throughput}}{\text{Link Capacity (10 Mbps)}} \times 100$$
    - When the primary transit path ($s1 \leftrightarrow s2 \leftrightarrow s4$) exceeds 80% link capacity, the controller redirects new and elephant flows across the alternate path ($s1 \leftrightarrow s3 \leftrightarrow s4$).
+
+---
+
+## 6. Real-Time Telemetry & Management Dashboard
+
+The management and telemetry plane is visualized via a custom Flask-based Web Dashboard ([`dashboard/live_dashboard.py`](../dashboard/live_dashboard.py)) operating on port 8081:
+
+![Figure 6.1: Live Web Telemetry Dashboard](../figures/dashboard_verified.png)
+
+*Figure 6.1: Real-time web telemetry dashboard demonstrating live system observability. The interface exposes active controller status, current load balancing mode toggles, real-time SVG topology link utilization gauges, and individual backend health cards.*
+
+### Dashboard Capabilities & Observability Features:
+1. **Interactive Load Balancing Mode Switching:** Allows operators to switch between Round-Robin, Least-Connections, and Weighted algorithms in real time via REST API calls without restarting the controller or data plane.
+2. **Dynamic Topology Link Utilization Gauges:** Visualizes data plane links with real-time color-coded saturation indicators:
+   - 🟢 **Green (< 60% load):** Normal operational link state.
+   - 🟡 **Yellow (60% – 80% load):** Approaching congestion watermark.
+   - 🔴 **Red (> 80% load):** Congestion threshold reached, triggering adaptive rerouting to Path B.
+3. **Backend Instance Fleet Health Monitoring:** Displays individual cards for each microservice (`srv1` to `srv4`) reporting:
+   - Operating State (`HEALTHY` or `DOWN`).
+   - IP and MAC address mapping.
+   - Real-time cumulative request counters.
+   - Active concurrent TCP connections tracked by OpenFlow flow tables.
