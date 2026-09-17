@@ -11,7 +11,7 @@
 ### Abstract
 Modern data centers face escalating traffic demands requiring high-throughput, agile, and cost-efficient traffic distribution. Traditional hardware Application Delivery Controllers (ADCs) suffer from high capital expenditure, vendor lock-in, rigid scalability, and lack of integration with global network telemetry. This project designs, implements, and evaluates a Software-Defined Networking (SDN) based Layer 4 Load Balancer and Adaptive Traffic Engineering system using the Ryu controller framework and OpenFlow 1.3, validated entirely within a Mininet-emulated Open vSwitch (OVS) environment. 
 
-The system implements Virtual IP (VIP) network abstraction with line-rate bidirectional NAT rewriting, eliminating controller bottlenecks after flow setup. Three distinct load distribution algorithms—Round-Robin, Least-Connections, and Weighted Round-Robin—are developed and comparatively analyzed. An active health prober detects backend server failures and reconfigures the forwarding plane without service interruption. Furthermore, real-time OpenFlow port telemetry drives an adaptive traffic engineering engine that dynamically reroutes flows across redundant transit links upon threshold saturation (>80%). Experimental evaluation using 24 concurrent multi-threaded HTTP workloads demonstrated optimal fairness, achieving a Jain's Fairness Index (JFI) of $\mathcal{J} = 1.0000$ for Round-Robin, Least-Connections, and Weighted modes, with an average latency of 269.71 ms and seamless failover. This project completely fulfills Course Learning Outcomes CPMK-1 through CPMK-5 for undergraduate telecommunication engineering education.
+The system implements Virtual IP (VIP) network abstraction with line-rate bidirectional NAT rewriting, eliminating controller bottlenecks after flow setup. Three distinct load distribution algorithms—Round-Robin, Least-Connections, and Weighted Round-Robin—are developed and comparatively analyzed. An active health prober detects backend server failures and reconfigures the forwarding plane without service interruption. Furthermore, real-time OpenFlow port telemetry drives an adaptive traffic engineering engine that dynamically reroutes flows across redundant transit links upon threshold saturation (>80%). Experimental evaluation across 3 independent iterations (72 total requests per algorithm, concurrency $C=4$) demonstrated optimal fairness, achieving a Jain's Fairness Index (JFI) of $\mathcal{J} = 1.0000$ for Least-Connections and Weighted modes ($\mathcal{J} = 0.9994$ for Round-Robin), with an average latency of 51.16 ms (LC) and sub-second failover. This project completely fulfills Course Learning Outcomes CPMK-1 through CPMK-5 for undergraduate telecommunication engineering education.
 
 **Keywords:** *Software-Defined Networking (SDN), OpenFlow 1.3, Ryu Controller, Open vSwitch, Load Balancing, Adaptive Traffic Engineering, Network Virtualization, Jain's Fairness Index.*
 
@@ -87,7 +87,6 @@ flowchart TD
         Benchmarks["Benchmarking Suite<br/>(generate_load.py / iperf3)"]
         REST["Ryu WSGI REST API<br/>(:8080/api)"]
     end
-
     subgraph ControlPlane ["Ryu SDN Controller (OpenFlow 1.3)"]
         MainApp["Main Controller App<br/>(main.py)"]
         FlowMgr["Flow Manager<br/>(flow_manager.py)"]
@@ -96,7 +95,6 @@ flowchart TD
         StatsMon["Stats Monitor<br/>(stats_monitor.py)"]
         HealthCheck["Health Checker<br/>(health_checker.py)"]
         TrafficEng["Traffic Engineer<br/>(traffic_engineer.py)"]
-
         MainApp --> FlowMgr
         MainApp --> LB
         MainApp --> TopoDisc
@@ -104,38 +102,31 @@ flowchart TD
         MainApp --> HealthCheck
         MainApp --> TrafficEng
     end
-
     subgraph DataPlane ["Data Plane (Open vSwitch / Mininet)"]
         subgraph Clients ["Client Subnet"]
             H1["Client h1<br/>10.0.0.1"]
             H2["Client h2<br/>10.0.0.2"]
         end
-
         S1["Ingress Switch (s1)<br/>dpid: 1"]
         S2["Transit Path A (s2)<br/>dpid: 2 (Primary, 10 Mbps)"]
         S3["Transit Path B (s3)<br/>dpid: 3 (Alternate, 10 Mbps)"]
         S4["Egress Switch (s4)<br/>dpid: 4"]
-
         subgraph Backends ["Backend Server Farm"]
             Srv1["srv1 (10.0.0.11)<br/>Weight: 1"]
             Srv2["srv2 (10.0.0.12)<br/>Weight: 2"]
             Srv3["srv3 (10.0.0.13)<br/>Weight: 1"]
             Srv4["srv4 (10.0.0.14)<br/>Weight: 2"]
         end
-
         MgmtPort["Host Mgmt IP<br/>10.0.0.254 (OFPP_LOCAL)"]
     end
-
     Dashboard -->|HTTP REST| REST
     Benchmarks -->|HTTP Traffic| H1
     Benchmarks -->|HTTP Traffic| H2
     REST --> MainApp
-
     ControlPlane <==|OpenFlow 1.3 (TCP 6653)|==> S1
     ControlPlane <==|OpenFlow 1.3 (TCP 6653)|==> S2
     ControlPlane <==|OpenFlow 1.3 (TCP 6653)|==> S3
     ControlPlane <==|OpenFlow 1.3 (TCP 6653)|==> S4
-
     H1 --- S1
     H2 --- S1
     S1 ---|Port 3 / 10 Mbps, 2ms| S2
@@ -170,12 +161,10 @@ sequenceDiagram
     participant S2 as Transit Switch (s2)
     participant S4 as Egress Switch (s4)
     actor Backend as Backend srv2 (10.0.0.12)
-
     Client->>S1: 1. ARP Request (Who has 10.0.0.100?)
     S1->>Ctrl: 2. Packet-In (ARP Request)
     Ctrl-->>S1: 3. Packet-Out (Proxy ARP: 10.0.0.100 -> 00:00:00:00:00:fe)
     S1-->>Client: 4. ARP Reply (Virtual MAC 00:00:00:00:00:fe)
-
     Client->>S1: 5. TCP SYN (dst: 10.0.0.100:80)
     S1->>Ctrl: 6. Packet-In (Table-Miss, Priority 0)
     Note over Ctrl: LB Algorithm selects srv2<br/>Path A (s1-s2-s4) chosen
@@ -198,8 +187,8 @@ sequenceDiagram
 ### 3.4 Flow Table Pipeline and Priority Hierarchy
 To prevent rule collisions, the flow table enforces strict priority ordering:
 - **Priority 100 (Health Check Bypass):** Unmodified traffic to backend real IPs for monitoring.
-- **Priority 50 (Forward NAT):** Rewrites `dst_ip=VIP` to `dst_ip=srv_ip` (`idle=15s, hard=60s`).
-- **Priority 40 (Reverse NAT):** Rewrites `src_ip=srv_ip` to `src_ip=VIP` (`idle=15s, hard=60s`).
+- **Priority 50 (Forward NAT):** Rewrites `dst_ip=VIP` to `dst_ip=srv_ip` (`idle=20s, hard=60s`).
+- **Priority 40 (Reverse NAT):** Rewrites `src_ip=srv_ip` to `src_ip=VIP` (`idle=20s, hard=60s`).
 - **Priority 30 (Proxy ARP):** Intercepts ARP queries for the VIP.
 - **Priority 20 (Traffic Engineering Overrides):** Rerouting rules directing flows to Path B when Path A saturates.
 - **Priority 10 (Learned L2 Forwarding):** Standard MAC-to-port forwarding.

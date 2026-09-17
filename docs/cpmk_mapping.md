@@ -25,7 +25,7 @@
 
 #### 1. Architectural Realization:
 - **Traditional ADC vs SDN Architecture:** Traditional load balancers rely on monolithic, proprietary hardware appliances (e.g. F5, A10) that act as single points of failure, introduce vendor lock-in, and present high operational costs. In this system, all intelligence is centralized in an open-source SDN controller (Ryu), while standard commodity switches (Open vSwitch) execute high-throughput hardware/kernel forwarding.
-- **Physical/Virtual Decoupling:** The control plane executes independently on Python 3 (`/home/rafli_alif/sdn-venv`), communicating with Mininet OVS kernel bridges via standard TCP port 6653.
+- **Physical/Virtual Decoupling:** The control plane executes independently in a Python 3 virtual environment (`sdn-venv`), communicating with Mininet OVS kernel bridges via standard TCP port 6653.
 
 #### 2. Verification Artifacts & Code References:
 - `topology/lb_topology.py`: Provisions switches `s1`, `s2`, `s3`, `s4` with `protocols='OpenFlow13'` and `fail_mode='secure'`.
@@ -46,14 +46,14 @@
   2. The controller inspects the TCP 5-tuple and computes the target server.
   3. The controller installs high-priority forward (Priority 50) and reverse (Priority 40) flow rules into OVS.
   4. Subsequent TCP segments (payload, ACKs, FINs) flow directly through the OVS kernel at wire speed with zero controller latency.
-- **Flow Timeouts:** Symmetrical flow entries are bounded with `idle_timeout=15` and `hard_timeout=60` to enforce timely table reclamation.
+- **Flow Timeouts:** Symmetrical flow entries are bounded with `idle_timeout=20` and `hard_timeout=60` to enforce timely table reclamation.
 
 #### 2. Verification Artifacts & Code References:
 - `controller/main.py`: Switch features handler (`switch_features_handler`) and Packet-In processor (`packet_in_handler`).
 - `controller/flow_manager.py`: Standardized helper functions `add_flow()` and `delete_flow()`.
 - Empirical Evidence: Output of `ovs-ofctl -O OpenFlow13 dump-flows s1`:
   ```
-  cookie=0x0, duration=1.2s, table=0, n_packets=8, n_bytes=616, priority=50,tcp,nw_src=10.0.0.1,nw_dst=10.0.0.100,tp_dst=80 actions=set_field:10.0.0.12->ip_dst,set_field:00:00:00:00:00:12->eth_dst,output:2
+  cookie=0x0, duration=1.2s, table=0, n_packets=8, n_bytes=616, priority=50,tcp,nw_src=10.0.0.1,nw_dst=10.0.0.100,tp_dst=80 actions=set_field:10.0.0.12->ip_dst,set_field:00:00:00:00:00:12->eth_dst,output:3
   ```
 
 ---
@@ -82,7 +82,7 @@
   - Standard ECMP hashes flows without awareness of link saturation.
   - The `TrafficEngineer` module continuously inspects the utilization of the primary transit link ($s1 \leftrightarrow s2$, Path A).
   - When link utilization breaches the 80% threshold (or during a physical link failure), the controller dynamically provisions alternate forwarding rules (Priority 20) routing new sessions over Path B ($s1 \leftrightarrow s3 \leftrightarrow s4$).
-  - Hysteresis thresholds (reverting below 40%) prevent route oscillation.
+  - Hysteresis thresholds (reverting below 50%) prevent route oscillation.
 
 #### 2. Verification Artifacts & Code References:
 - `controller/stats_monitor.py`: Periodic green-thread collector and `EventOFPPortStatsReply` parser.
@@ -101,17 +101,18 @@
   2. *Least-Connections*: State-aware dispatch utilizing active connection tracking.
   3. *Weighted Round-Robin*: Proportional capacity dispatch adhering to integer ratios ($1:2:1:2$).
 - **Active Health Probing & Fault Tolerance:**
-  - Non-blocking HTTP health prober queries `/health` on all server nodes.
-  - Detects server crashes within 2 check intervals and removes dead nodes from the active pool.
+  - Non-blocking HTTP health prober queries `/health` on all server nodes (10s interval, 5 fail limit, 3s timeout).
+  - Detects server crashes and removes dead nodes from the active pool (with instantaneous sub-second failover via admin REST override).
   - Evicts stale flow entries targeting dead instances via OpenFlow `OFPFC_DELETE`.
   - Automatically restores nodes upon recovery.
 - **Empirical Benchmarking & Evaluation:**
   - Evaluated using custom multi-threaded HTTP test harness (`benchmark/generate_load.py`).
-  - Evaluated fairness using **Jain's Fairness Index (JFI)** ($\mathcal{J}=1.0000$).
+  - Evaluated fairness using **Jain's Fairness Index (JFI)** ($\mathcal{J}=1.0000$ on LC and Weighted).
   - Generated scientific evaluation figures in `figures/`:
     - `load_distribution_comparison.png`
     - `latency_cdf.png`
     - `fairness_index_comparison.png`
+    - `throughput_comparison.png`
 
 #### 2. Verification Artifacts & Code References:
 - `benchmark/run_all_benchmarks.py`: Automated multi-run test orchestrator.

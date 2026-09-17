@@ -34,7 +34,7 @@ These rules apply to all code, configuration, scripts, and documentation generat
   - Any periodic polling or background loop must use Ryu's `hub.spawn()` and `hub.sleep()`. Never use standard blocking `time.sleep()`.
   - Handle exceptions inside event callbacks gracefully to avoid killing greenthreads.
 - **Flow Timeout Conventions:**
-  - Active client-to-backend TCP session flows must use `idle_timeout=15` or `idle_timeout=30` and `hard_timeout=60` to ensure prompt flow reclamation after connection termination.
+  - Active client-to-backend TCP session flows must use `idle_timeout=20` and `hard_timeout=60` to ensure prompt flow reclamation after connection termination.
   - Permanent infrastructure rules (Table-Miss, ARP responder, default bypass) must have `idle_timeout=0` and `hard_timeout=0`.
 
 ---

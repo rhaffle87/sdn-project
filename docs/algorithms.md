@@ -132,18 +132,18 @@ When the allocation matches the configured weights ($x_i \propto w_i$), $y_1 = y
 
 ## 6. Empirical Benchmark Validation Results
 
-The algorithms were benchmarked inside the Mininet environment with 24 concurrent client requests dispatched through the OpenFlow pipeline:
+The algorithms were benchmarked systematically inside the Mininet environment across 3 independent iterations (72 total client HTTP requests per algorithm, concurrency $C=4$) dispatched through the OpenFlow pipeline:
 
-| Algorithm | Total Requests | Distribution (srv1, srv2, srv3, srv4) | Target Ratio | Achieved Ratio | JFI ($\mathcal{J}$) | Weighted JFI ($\mathcal{J}_w$) | Avg Latency | RPS |
-|---|---|---|---|---|---|---|---|---|
-| **Round-Robin** | 24 | [6, 6, 6, 6] | 1 : 1 : 1 : 1 | 1 : 1 : 1 : 1 | **1.0000** | 0.9000 | 276.58 ms | 13.13 |
-| **Least-Connections** | 24 | [6, 6, 6, 6] | 1 : 1 : 1 : 1 | 1 : 1 : 1 : 1 | **1.0000** | 0.9000 | 269.71 ms | 12.99 |
-| **Weighted (WRR)** | 24 | [4, 8, 4, 8] | 1 : 2 : 1 : 2 | 1 : 2 : 1 : 2 | 0.9000 | **1.0000** | 438.99 ms | 8.56 |
+| Algorithm | Total Requests | Distribution `[srv1, srv2, srv3, srv4]` | Target Ratio | Achieved Ratio | JFI ($\mathcal{J}$) | Weighted JFI ($\mathcal{J}_w$) | Avg Latency | Median Latency | P95 Latency | P99 Latency | RPS |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Round-Robin** | 72 (3 $\times$ 24) | `[18, 18, 18, 17]` | 1 : 1 : 1 : 1 | 1.05 : 1.05 : 1.05 : 1.00 | **0.9994** | 0.9000 | 61.12 ms | 36.62 ms | 133.76 ms | 440.49 ms | 27.55 |
+| **Least-Connections** | 72 (3 $\times$ 24) | `[18, 18, 18, 18]` | 1 : 1 : 1 : 1 | **1 : 1 : 1 : 1** | **1.0000** | 0.9000 | **51.16 ms** | 36.75 ms | **68.80 ms** | 334.33 ms | 28.37 |
+| **Weighted (WRR)** | 72 (3 $\times$ 24) | `[12, 24, 12, 24]` | 1 : 2 : 1 : 2 | **1 : 2 : 1 : 2** | 0.9000 | **1.0000** | 51.77 ms | 41.82 ms | 91.78 ms | **132.08 ms** | **28.73** |
 
 ### Analysis:
-1. **Round-Robin & Least-Connections** achieved mathematical perfection ($\mathcal{J} = 1.0000$) with exactly 6 requests served per backend.
-2. **Weighted Round-Robin** matched its target weight ratio of $1:2:1:2$ with zero deviation ($[4, 8, 4, 8]$), achieving a Weighted JFI of **1.0000**.
-3. **Latency Profile:** Least-Connections yielded the lowest average latency (269.71 ms) by balancing dispatch timing across fast responses.
+1. **Least-Connections** achieved absolute mathematical perfection ($\mathcal{J} = 1.0000$), maintaining uniform connection distribution across all 4 backends ($18:18:18:18$) with the lowest average latency ($51.16\text{ ms}$).
+2. **Round-Robin** achieved near-ideal equity ($\mathcal{J} = 0.9994$) across 72 requests with 71/72 successful completions.
+3. **Weighted Round-Robin** matched its target weight ratio of $1:2:1:2$ with zero deviation ($[12, 24, 12, 24]$), achieving an ideal Weighted Fairness Index of **1.0000**, the highest overall throughput ($28.73\text{ RPS}$), and the tightest tail latency ($P_{99} = 132.08\text{ ms}$).
 
 ---
 
@@ -151,8 +151,8 @@ The algorithms were benchmarked inside the Mininet environment with 24 concurren
 
 ### 7.1 Multi-Path Topology Model
 The data plane features a diamond topology with two redundant transit paths connecting Ingress Switch ($s1$) and Egress Switch ($s4$):
-- **Path A (Primary):** $s1 \xrightarrow{\text{port 2}} s2 \xrightarrow{\text{port 2}} s4$
-- **Path B (Alternate):** $s1 \xrightarrow{\text{port 3}} s3 \xrightarrow{\text{port 2}} s4$
+- **Path A (Primary):** $s1 \xrightarrow{\text{port 3}} s2 \xrightarrow{\text{port 2}} s4$
+- **Path B (Alternate):** $s1 \xrightarrow{\text{port 4}} s3 \xrightarrow{\text{port 2}} s4$
 
 Each link is constrained to a bandwidth capacity of $C = 10\text{ Mbps}$.
 
@@ -162,12 +162,12 @@ $$\Delta \text{tx\_bytes} = \text{tx\_bytes}_t - \text{tx\_bytes}_{t-T}$$
 $$\text{Current Utilization } U = \frac{\Delta \text{tx\_bytes} \times 8}{T \times C} \times 100\%$$
 
 #### Rerouting Rules:
-- If $U > 75\%$ on Path A:
+- If $U \ge 80\%$ on Path A (`TE_THRESHOLD_RATIO = 0.80`):
   $$\text{TrafficEngineer} \implies \text{Trigger Reroute to Path B}$$
-  The controller installs priority 20 flow rules on $s1$ directing new sessions to port 3 ($s3$).
-- If $U < 40\%$ on Path A (Hysteresis threshold):
+  The controller steers new sessions across Path B via switch $s1$ port 4 ($s3$).
+- If $U < 50\%$ on Path A (Hysteresis recovery threshold):
   $$\text{TrafficEngineer} \implies \text{Restore Primary Path A}$$
-  Flow rules revert to port 2 ($s2$), preventing oscillatory route flapping.
+  Forwarding preference reverts to port 3 ($s2$), preventing oscillatory route flapping.
 
 ### 7.3 Link Failure Detection & Sub-50ms Recovery
 When an OpenFlow `OFPPortStatus` message with flag `OFPPR_DELETE` or link down state is received:

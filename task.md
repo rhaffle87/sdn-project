@@ -29,7 +29,7 @@
 - [x] Add `.gitignore`, `requirements.txt`, and `README.md`
 
 ### Phase 1: Topology, Environment & Backend Microservice `[x]`
-- [x] Create `scripts/setup_env.sh` to verify WSL2 dependencies in `/home/rafli_alif/sdn-venv`
+- [x] Create `scripts/setup_env.sh` to verify WSL2 dependencies in `sdn-venv`
 - [x] Create `scripts/cleanup.sh` for reliable Mininet/OVS cleanup
 - [x] Implement `topology/lb_topology.py`:
   - 2+ switches with redundant/multi-path links (TCLink `bw=10`, `delay=2ms`)
@@ -94,6 +94,7 @@
   - Generate load distribution bar charts (`load_distribution_comparison.png`)
   - Generate latency vs throughput curves (`latency_cdf.png`)
   - Generate Jain's Fairness comparison figures (`fairness_index_comparison.png`)
+  - Generate throughput comparison bar charts (`throughput_comparison.png`)
 
 ### Phase 5: Live Dashboard, Documentation & CPMK Report (Month 4) `[x]`
 - [x] Implement `dashboard/live_dashboard.py`:

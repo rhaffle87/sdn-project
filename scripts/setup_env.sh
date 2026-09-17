@@ -4,7 +4,7 @@ set -e
 echo "=== [SDN Project] Checking Environment Dependencies ==="
 
 # 1. Check Python virtual environment
-VENV_PATH="/home/rafli_alif/sdn-venv"
+VENV_PATH="${VENV_PATH:-$HOME/sdn-venv}"
 if [ ! -d "$VENV_PATH" ]; then
     echo "Creating virtual environment at $VENV_PATH..."
     python3 -m venv "$VENV_PATH"

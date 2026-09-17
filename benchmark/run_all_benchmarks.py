@@ -82,7 +82,7 @@ def run_all_benchmarks():
                 print(f"\n  [Run {run_idx}/{BENCHMARK_ITERATIONS}] {algo_name}")
                 out_file = os.path.join(RESULTS_DIR, f"{algo_key}_run{run_idx}.json")
                 # Execute load generator from client host h1 namespace
-                cmd = (f"/home/rafli_alif/sdn-venv/bin/python3 {PROJECT_ROOT}/benchmark/generate_load.py "
+                cmd = (f"{sys.executable} {PROJECT_ROOT}/benchmark/generate_load.py "
                        f"--target http://10.0.0.100/ --requests 24 --concurrency 4 --delay 0.03 "
                        f"--out {out_file}")
                 print(f"  [*] Executing on h1: {cmd}")

@@ -10,12 +10,21 @@ fi
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$PROJECT_DIR"
 
+# Determine virtual environment and binary paths
+VENV_PATH="${VENV_PATH:-$HOME/sdn-venv}"
+RYU_BIN="$VENV_PATH/bin/ryu-manager"
+PYTHON_BIN="$VENV_PATH/bin/python3"
+if [ ! -f "$RYU_BIN" ]; then
+    RYU_BIN="ryu-manager"
+    PYTHON_BIN="python3"
+fi
+
 # 1. Clean up any stale state
 ./scripts/cleanup.sh
 
 # 2. Start Ryu controller in background
 echo "[*] Starting Ryu controller (OpenFlow 1.3 on port 6653)..."
-/home/rafli_alif/sdn-venv/bin/ryu-manager controller/main.py --ofp-tcp-listen-port 6653 > "$PROJECT_DIR/ryu.log" 2>&1 &
+$RYU_BIN controller/main.py --ofp-tcp-listen-port 6653 > "$PROJECT_DIR/ryu.log" 2>&1 &
 RYU_PID=$!
 
 # Wait for controller port 6653 to be ready
@@ -37,7 +46,7 @@ sys.exit(1)
 # 3. Run the test
 echo "[*] Executing test script: $TEST_SCRIPT..."
 EXIT_CODE=0
-sudo /home/rafli_alif/sdn-venv/bin/python3 "$TEST_SCRIPT" || EXIT_CODE=$?
+sudo "$PYTHON_BIN" "$TEST_SCRIPT" || EXIT_CODE=$?
 
 # 4. Stop controller and clean up
 echo "[*] Stopping Ryu controller (PID: $RYU_PID)..."
