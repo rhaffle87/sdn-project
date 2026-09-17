@@ -87,7 +87,7 @@
   - Hysteresis thresholds (reverting below 50% for two consecutive cycles) prevent route oscillation.
 
 #### 2. Empirical Verification & Visual Proof:
-![Figure CPMK-4: Live Telemetry Web Dashboard](../figures/dashboard_verified.png)
+![Figure CPMK-4: Live Telemetry Web Dashboard](../figures/dashboard_full_system_verified.png)
 
 *Figure CPMK-4: Live Web Telemetry Dashboard (:8081) illustrating real-time SDN telemetry. Port statistics are continuously aggregated to monitor link bandwidth saturation on Path A and Path B, driving dynamic rerouting decisions.*
 

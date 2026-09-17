@@ -240,7 +240,7 @@ flowchart LR
 - **Implementation Files:** [`benchmark/generate_load.py`](../benchmark/generate_load.py), [`benchmark/measure_fairness.py`](../benchmark/measure_fairness.py), [`benchmark/iperf_bench.sh`](../benchmark/iperf_bench.sh), [`dashboard/plot_results.py`](../dashboard/plot_results.py)
 - **Live Telemetry Interface:** The control plane telemetry is exposed through a real-time web dashboard running on port 8081:
 
-![Figure 2.1: Live Web Telemetry Dashboard Interface](../figures/dashboard_verified.png)
+![Figure 2.1: Live Web Telemetry Dashboard Interface](../figures/dashboard_full_system_verified.png)
 
 *Figure 2.1: Real-time telemetry dashboard showcasing live link utilization meters, dynamic algorithm toggling, and backend health status.*
 

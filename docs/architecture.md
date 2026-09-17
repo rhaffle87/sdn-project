@@ -227,7 +227,7 @@ sequenceDiagram
 
 The management and telemetry plane is visualized via a custom Flask-based Web Dashboard ([`dashboard/live_dashboard.py`](../dashboard/live_dashboard.py)) operating on port 8081:
 
-![Figure 6.1: Live Web Telemetry Dashboard](../figures/dashboard_verified.png)
+![Figure 6.1: Live Web Telemetry Dashboard](../figures/dashboard_full_system_verified.png)
 
 *Figure 6.1: Real-time web telemetry dashboard demonstrating live system observability. The interface exposes active controller status, current load balancing mode toggles, real-time SVG topology link utilization gauges, and individual backend health cards.*
 

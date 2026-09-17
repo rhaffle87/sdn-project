@@ -236,9 +236,6 @@ flowchart LR
 
     PathA -->|"Path A Load ≥ 80%<br/>(Congestion Trigger)"| PathB
     PathB -->|"Path A Load < 50%<br/>(2 Consecutive Cycles)"| PathA
-
-    style PathA fill:#0d2040,stroke:#38bdf8,stroke-width:2px,color:#e2e8f0
-    style PathB fill:#1a1040,stroke:#818cf8,stroke-width:2px,color:#e2e8f0
 ```
 
 ### 7.3 Link Failure Detection & Sub-Second Recovery

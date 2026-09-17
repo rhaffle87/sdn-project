@@ -217,7 +217,7 @@ The controller application is implemented in Python under the Ryu framework:
 ### 4.3 Backend Microservices & Telemetry Dashboard
 Backend servers are implemented as Python Flask microservices ([`server/backend_server.py`](../server/backend_server.py)) responding with structured JSON payloads containing server IDs and request counters. A live web dashboard ([`dashboard/live_dashboard.py`](../dashboard/live_dashboard.py)) runs on port 8081, providing real-time SVG link utilization gauges, backend status indicators, and runtime algorithm toggles:
 
-![Figure 4.1: Live Web Telemetry Dashboard Interface](../figures/dashboard_verified.png)
+![Figure 4.1: Live Web Telemetry Dashboard Interface](../figures/dashboard_full_system_verified.png)
 
 *Figure 4.1: Live Web Telemetry Dashboard (:8081) showcasing real-time SDN telemetry. Port statistics are continuously aggregated to monitor link bandwidth saturation on Path A and Path B, driving dynamic rerouting decisions.*
 
