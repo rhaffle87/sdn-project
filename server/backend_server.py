@@ -70,8 +70,12 @@ def health():
 
 @app.route("/health/toggle", methods=["POST"])
 def toggle_health():
-    """Administrative endpoint to toggle health state (useful for failover tests)."""
-    STATE["healthy"] = not STATE["healthy"]
+    """Administrative endpoint to set or toggle health state (useful for failover tests)."""
+    payload = request.get_json(silent=True) or {}
+    if "healthy" in payload:
+        STATE["healthy"] = bool(payload["healthy"])
+    else:
+        STATE["healthy"] = not STATE["healthy"]
     return jsonify({
         "status": "UP" if STATE["healthy"] else "DOWN",
         "server_id": STATE["server_id"]

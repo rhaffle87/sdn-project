@@ -86,8 +86,10 @@ class TrafficEngineer:
             return True
         elif path_name == "auto":
             self.manual_override = None
+            if self.app.topo.is_path_available("path_a"):
+                self.app.preferred_path = "path_a"
             self.last_reroute_reason = "Adaptive TE active (Dynamic Congestion Rerouting)"
-            LOG.info("[TE] Manual lock cleared, restored Adaptive TE")
+            LOG.info("[TE] Manual lock cleared, restored Adaptive TE to %s", self.app.preferred_path)
             return True
         return False
 

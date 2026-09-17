@@ -94,7 +94,8 @@ class HealthChecker:
             if b["id"] == backend_id:
                 try:
                     url = f"http://{b['ip']}:{b['port']}/health/toggle"
-                    req = urllib.request.Request(url, data=b"", headers={"Content-Type": "application/json"}, method="POST")
+                    payload = json.dumps({"healthy": bool(is_healthy)}).encode()
+                    req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
                     with urllib.request.urlopen(req, timeout=1.0) as _:
                         pass
                 except Exception:
