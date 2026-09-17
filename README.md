@@ -164,7 +164,7 @@ flowchart LR
 - **Mechanism:** Ryu installs symmetric flow rules across the ingress, transit, and egress switches:
   - **Forward Rule (s1, Priority 50):** Rewrites `ipv4_dst` from VIP `10.0.0.100` to the real backend IP (`10.0.0.11-14`) and `eth_dst` to backend MAC.
   - **Reverse Rule (s1, Priority 40):** Rewrites `ipv4_src` from backend IP back to `10.0.0.100` and `eth_src` back to `00:00:00:00:00:fe`.
-- **Reasoning & Rationale:** TCP sockets are bound to the client-selected 4-tuple $(\text{src\_ip}$, $\text{src\_port}$, $\text{dst\_ip}$, $\text{dst\_port})$. If a backend replies with its real IP, the client kernel immediately drops the packet and responds with a TCP RST.
+- **Reasoning & Rationale:** TCP sockets are bound to the client-selected 4-tuple (`src_ip`, `src_port`, `dst_ip`, `dst_port`). If a backend replies with its real IP, the client kernel immediately drops the packet and responds with a TCP RST.
 - **Edge Case Prevention:**
   - *SYN Forwarding Race:* To prevent dropping the initial SYN packet while `FlowMod` messages are propagating to OVS, Ryu simultaneously injects the rewritten SYN packet along the chosen transit path via `send_packet_out`.
 
@@ -199,7 +199,7 @@ flowchart LR
     $$J(x_1, x_2, \dots, x_n) = \frac{\left(\sum_{i=1}^n x_i\right)^2}{n \cdot \sum_{i=1}^n x_i^2}$$
   - Flask web dashboard (`:8081`) visualizes real-time per-backend request counts, active connections, link bandwidth utilization, and health status:
 
-![Figure: Live Web Telemetry Dashboard](figures/dashboard_verified.png)
+![Figure: Live Web Telemetry Dashboard](figures/dashboard_full_system_verified.png)
 
 - **Benchmark Highlights (72 requests, $C=4$):**
   - **Round-Robin:** Achieved perfect mathematical fairness ($\mathcal{J} = 1.0000$) with uniform $18:18:18:18$ distribution, 100% request completion, and top throughput ($32.13\text{ RPS}$).

@@ -184,7 +184,7 @@ flowchart LR
        - `SET_FIELD(eth_src = 00:00:00:00:00:fe)`
        - `OUTPUT:client_in_port`
 - **Specific Reasoning:**
-  - TCP connections are strictly identified by the 4-tuple $(\text{src\_ip}, \text{src\_port}, \text{dst\_ip}, \text{dst\_port})$. If the server sends a response with its real IP `10.0.0.12`, the client OS kernel will immediately drop the packet and issue a TCP RST because the client never opened a socket to `10.0.0.12`. Symmetrical rewriting is mandatory.
+  - TCP connections are strictly identified by the 4-tuple (`src_ip`, `src_port`, `dst_ip`, `dst_port`). If the server sends a response with its real IP `10.0.0.12`, the client OS kernel will immediately drop the packet and issue a TCP RST because the client never opened a socket to `10.0.0.12`. Symmetrical rewriting is mandatory.
 - **Edge Cases & Failure Modes:**
   - *SYN Packet Loss Race Condition:* When the first TCP SYN packet arrives at Ryu, installing flow rules across multiple switches via `FlowMod` takes 1–3 ms. If the controller does not inject the initial SYN into the data plane using `send_packet_out`, the packet is lost. The controller injects the rewritten SYN packet along the chosen path simultaneously with the `FlowMod` messages.
   - *TCP Port Collisions:* Matching on both `client_ip` and `client_port` prevents interference between concurrent connections initiated by the same client.

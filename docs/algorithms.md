@@ -213,9 +213,9 @@ Each transit link is constrained to a bandwidth capacity of $C = 10\text{ Mbps}$
 ### 7.2 Utilization Detection & Hysteresis
 The controller continuously polls OpenFlow port counters every interval $T = 5\text{ seconds}$ via `StatsMonitor` ([`controller/stats_monitor.py`](../controller/stats_monitor.py)):
 
-$$\Delta \text{tx\_bytes} = \text{tx\_bytes}_t - \text{tx\_bytes}_{t-T}$$
+$$\Delta B_{\text{tx}} = B_{\text{tx}, t} - B_{\text{tx}, t-T}$$
 
-$$\text{Current Utilization } U = \frac{\Delta \text{tx\_bytes} \times 8}{T \times C} \times 100\%$$
+$$\text{Current Utilization } U = \frac{\Delta B_{\text{tx}} \times 8}{T \times C} \times 100\%$$
 
 #### Rerouting State Machine ([`controller/traffic_engineer.py`](../controller/traffic_engineer.py)):
 - **Congestion Threshold ($U \ge 80\%$ on Path A):**
